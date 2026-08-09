@@ -1,4 +1,4 @@
-struct Display {
+pub struct Display {
     content: [[bool; Self::WIDTH]; Self::HEIGHT],
 }
 

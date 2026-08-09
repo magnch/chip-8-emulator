@@ -1,4 +1,4 @@
-struct Memory {
+pub struct Memory {
     content: [u8; Self::MEMORY_SIZE],
 }
 
