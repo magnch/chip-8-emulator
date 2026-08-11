@@ -3,8 +3,8 @@ pub(crate) struct Display {
 }
 
 impl Display {
-    const WIDTH: usize = 64;
-    const HEIGHT: usize = 32;
+    pub const WIDTH: usize = 64;
+    pub const HEIGHT: usize = 32;
 
     pub(crate) fn set_pixel(&mut self, row: usize, col: usize, value: bool) {
         self.content[row][col] = value;
@@ -16,5 +16,35 @@ impl Display {
                 *pixel = false;
             }
         }
+    }
+
+    pub(crate) fn draw_sprite(&mut self, x_start: usize, y_start: usize, sprite: &[u8]) -> bool {
+        let mut collision = false;
+
+        'row: for (row, &byte) in sprite.iter().enumerate() {
+            'column: for bit in 0..8 {
+                let value = (byte >> (7 - bit)) & 1;
+                if value == 1 {
+                    let x = x_start + bit;
+                    if x >= Self::WIDTH {
+                        break 'column;
+                    }
+                    let y = y_start + row;
+                    if y >= Self::HEIGHT {
+                        break 'row;
+                    }
+                    match self.content[x][y] {
+                        false => self.content[x][y] = true,
+                        true => {
+                            self.content[x][y] = false;
+                            collision = true;
+                        }
+                    }
+
+                }
+
+            }
+        }
+        collision
     }
 }

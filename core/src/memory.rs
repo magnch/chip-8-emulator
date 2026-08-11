@@ -13,4 +13,8 @@ impl Memory {
     pub(crate) fn write(&mut self, address: usize, data: u8) {
         self.content[address] = data;
     }
+
+    pub(crate) fn read_slice(&self, address: usize, length: usize) -> &[u8] {
+        &self.content[address..address+length]
+    }
 }
