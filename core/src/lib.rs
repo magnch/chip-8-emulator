@@ -1,4 +1,4 @@
-mod cpu;
+pub mod chip8;
 mod display;
 mod font;
 mod keypad;

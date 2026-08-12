@@ -21,7 +21,10 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
     let nnn     = extract_nibbles(opcode, 0, 3);
 
     match nibble {
-        0x0 => Instruction::None, //match y { },
+        0x0 => match y {
+            0xE => Instruction::Cls,
+            _ => Instruction::None
+        }
         0x1 => Instruction::Jmp(nnn),
         0x6 => Instruction::Mov(x, nn),
         0x7 => Instruction::Add(x, nn),
