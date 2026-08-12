@@ -23,7 +23,7 @@ pub fn main() {
         chip8.step();
         print_display(&chip8);
         // Update at 1 Hz
-        std::thread::sleep(Duration::from_sec(1));
+        std::thread::sleep(Duration::from_secs(1));
     }
 
     /* let sdl_context = sdl2::init().unwrap();
