@@ -6,6 +6,14 @@ impl Display {
     pub const WIDTH: usize = 64;
     pub const HEIGHT: usize = 32;
 
+    pub(crate) fn new() -> Self {
+        Display { content: [[false; Self::WIDTH]; Self::HEIGHT] }
+    }
+
+    pub(crate) fn get_content(&self) -> &[[bool; Self::WIDTH]; Self::HEIGHT] {
+        &self.content
+    }
+
     pub(crate) fn set_pixel(&mut self, row: usize, col: usize, value: bool) {
         self.content[row][col] = value;
     }
@@ -33,10 +41,10 @@ impl Display {
                     if y >= Self::HEIGHT {
                         break 'row;
                     }
-                    match self.content[x][y] {
-                        false => self.content[x][y] = true,
+                    match self.content[y][x] {
+                        false => self.content[y][x] = true,
                         true => {
-                            self.content[x][y] = false;
+                            self.content[y][x] = false;
                             collision = true;
                         }
                     }
