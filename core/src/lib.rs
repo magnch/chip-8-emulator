@@ -1,5 +1,5 @@
 pub mod chip8;
-mod display;
+pub mod display;
 mod font;
 mod keypad;
 mod memory;

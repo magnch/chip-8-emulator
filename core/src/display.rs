@@ -1,4 +1,4 @@
-pub(crate) struct Display {
+pub struct Display {
     content: [[bool; Self::WIDTH]; Self::HEIGHT],
 }
 
@@ -10,7 +10,7 @@ impl Display {
         Display { content: [[false; Self::WIDTH]; Self::HEIGHT] }
     }
 
-    pub(crate) fn get_content(&self) -> &[[bool; Self::WIDTH]; Self::HEIGHT] {
+    pub fn get_content(&self) -> &[[bool; Self::WIDTH]; Self::HEIGHT] {
         &self.content
     }
 
