@@ -47,8 +47,8 @@ impl Chip8 {
         self.sound_timer = self.sound_timer.saturating_sub(1);
     }
 
-    pub fn get_display_content(&self) -> &[[bool; Display::WIDTH]; Display::HEIGHT] {
-        self.display.get_content()
+    pub fn get_display(&self) -> &Display {
+        &self.display
     }
 
     fn fetch(&mut self) -> u16 {
