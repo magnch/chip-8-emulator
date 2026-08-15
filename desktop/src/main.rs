@@ -8,14 +8,14 @@ mod input;
 
 const CYCLES_PER_SECOND: u16 = 700;
 const TIMER_HZ: u8 = 60;
-const WINDOW_SCALE: usize = 10;
+const WINDOW_SCALE: usize = 18;
 
 
 pub fn main() {
 
     // Chip-8
     let mut chip8 = Chip8::new(); 
-    let rom = std::fs::read("roms/ibm_logo.ch8").expect("failed to read ROM");
+    let rom = std::fs::read("roms/test_opcode.ch8").expect("failed to read ROM");
     chip8.load_rom(rom.as_slice());
 
     // Set up GUI and input
