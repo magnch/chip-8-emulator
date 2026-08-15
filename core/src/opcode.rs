@@ -6,11 +6,11 @@ pub(crate) enum Instruction {
     High,                       //00FF
     Jmp(usize),                 //1nnn
     Jsr(usize),                 //2nnn
-    Skeq_const(usize, u8),      //3xnn
-    Skne_const(usize, u8),      //4xnn
+    SkeqConst(usize, u8),      //3xnn
+    SkneConst(usize, u8),      //4xnn
     Skeq(usize, usize),         //5xy0
-    Mov_const(usize, u8),       //6xnn
-    Add_const(usize, u8),       //7xnn
+    MovConst(usize, u8),       //6xnn
+    AddConst(usize, u8),       //7xnn
     Mov(usize, usize),          //8xy0
     Or(usize, usize),           //8xy1
     And(usize, usize),          //8xy2
@@ -62,11 +62,11 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
         }
         0x1 => Instruction::Jmp(nnn),
         0x2 => Instruction::Jsr(nnn),
-        0x3 => Instruction::Skeq_const(x, nn),
-        0x4 => Instruction::Skne_const(x, nn),
+        0x3 => Instruction::SkeqConst(x, nn),
+        0x4 => Instruction::SkneConst(x, nn),
         0x5 => Instruction::Skeq(x, y),  
-        0x6 => Instruction::Mov_const(x, nn),
-        0x7 => Instruction::Add_const(x, nn),
+        0x6 => Instruction::MovConst(x, nn),
+        0x7 => Instruction::AddConst(x, nn),
         0x8 => match n {
             0x0 => Instruction::Mov(x, y),
             0x1 => Instruction::Or(x, y),
