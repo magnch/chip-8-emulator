@@ -176,7 +176,7 @@ impl Chip8 {
 
     fn sub_with_carry(&mut self, x: usize, y: usize) -> u8 {
         let (result, carry) = self.registers[x].overflowing_sub(self.registers[y]);
-        self.set_vf(carry as u8);
+        self.set_vf(!carry as u8);
         result
     }
 
