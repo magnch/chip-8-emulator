@@ -7,7 +7,8 @@ pub enum Chip8Error {
     StackUnderflow,
     RomTooLarge{size: usize, max_size: usize},
     MemoryOutOfBounds{address: usize},
-    DisplayOutOfBounds{row: usize, col: usize}
+    DisplayOutOfBounds{row: usize, col: usize},
+    KeypadOutOfBounds{key: usize},
 }
 
 impl fmt::Display for Chip8Error {
@@ -28,8 +29,11 @@ impl fmt::Display for Chip8Error {
             Chip8Error::MemoryOutOfBounds { address } => {
                 write!(f, "out of bounds memory access at address: {address:#06X}")
             }
-            Chip8Error::DisplayOutOfBounds { row, col } {
-                write(f, "out of bounds display access at row {row}, column {col}")
+            Chip8Error::DisplayOutOfBounds { row, col } => {
+                write!(f, "out of bounds display access at row {row}, column {col}")
+            }
+            Chip8Error::KeypadOutOfBounds { key } => {
+                write!(f, "out of bounds keypad key: {key}")
             }
         }
     }

@@ -6,13 +6,19 @@ use sdl2::video::Window;
 
 use chip8_core::display::Display;
 
+pub enum Mode {
+    Standard,
+    Debugger
+}
+
 pub struct Renderer {
     canvas: Canvas<Window>,
-    scale: usize
+    scale: usize,
+    mode: Mode,
 }
 
 impl Renderer {
-    pub fn new(sdl_context: &sdl2::Sdl, scale: usize) -> Self {
+    pub fn new(sdl_context: &sdl2::Sdl, scale: usize, mode: Mode) -> Self {
         // SDL2 initialization
         let width = (Display::WIDTH * scale) as u32;
         let height = (Display::HEIGHT * scale) as u32;
@@ -28,7 +34,7 @@ impl Renderer {
         canvas.clear();
         canvas.present();
 
-        Self { canvas, scale }
+        Self { canvas, scale, mode }
     }
 
     pub fn render(&mut self, display: &Display) {

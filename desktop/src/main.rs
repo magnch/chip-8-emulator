@@ -16,11 +16,11 @@ pub fn main() {
     // Chip-8
     let mut chip8 = Chip8::new(); 
     let rom = std::fs::read("roms/test_opcode.ch8").expect("failed to read ROM");
-    chip8.load_rom(rom.as_slice());
+    chip8.load_rom(rom.as_slice()).expect("failed to load ROM");
 
     // Set up GUI and input
     let sdl_context = sdl2::init().unwrap();
-    let mut renderer = gui::Renderer::new(&sdl_context, WINDOW_SCALE);
+    let mut renderer = gui::Renderer::new(&sdl_context, WINDOW_SCALE, gui::Mode::Standard);
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     'running: loop {
@@ -34,7 +34,10 @@ pub fn main() {
             }
         }
         // Game loop
-        chip8.step();
+        if let Err(e) = chip8.step() {
+            eprintln!("emulation error: {e}");
+            break 'running;
+        }
         // Renderer
         renderer.render(chip8.get_display());
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

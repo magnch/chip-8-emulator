@@ -1,16 +1,16 @@
 pub(crate) enum Instruction {
-    None,
+    Unknown,
     Cls,                        //00E0
     Rts,                        //00EE
     Low,                        //00FE
     High,                       //00FF
     Jmp(usize),                 //1nnn
     Jsr(usize),                 //2nnn
-    SkeqConst(usize, u8),      //3xnn
-    SkneConst(usize, u8),      //4xnn
+    SkeqConst(usize, u8),       //3xnn
+    SkneConst(usize, u8),       //4xnn
     Skeq(usize, usize),         //5xy0
-    MovConst(usize, u8),       //6xnn
-    AddConst(usize, u8),       //7xnn
+    MovConst(usize, u8),        //6xnn
+    AddConst(usize, u8),        //7xnn
     Mov(usize, usize),          //8xy0
     Or(usize, usize),           //8xy1
     And(usize, usize),          //8xy2
@@ -58,7 +58,7 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
             0xFE => Instruction::Low,
             0xFF => Instruction::High,
 
-            _ => Instruction::None
+            _ => Instruction::Unknown
         }
         0x1 => Instruction::Jmp(nnn),
         0x2 => Instruction::Jsr(nnn),
@@ -78,7 +78,7 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
             0x7 => Instruction::Rsb(x, y),
             0xE => Instruction::Shl(x),
 
-            _ => Instruction::None
+            _ => Instruction::Unknown
         }
         0x9 => Instruction::Skne(x, y),
         0xA => Instruction::Mvi(nnn),
@@ -89,7 +89,7 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
             0x1 => Instruction::Skup(x),
             0xE => Instruction::Skpr(x),
 
-            _ => Instruction::None
+            _ => Instruction::Unknown
         }
         0xF => match nn {
             0x07 => Instruction::Gdelay(x),
@@ -103,9 +103,9 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
             0x55 => Instruction::Str(x),
             0x65 => Instruction::Ldr(x),
 
-            _ => Instruction::None
+            _ => Instruction::Unknown
         }
 
-        _ => Instruction::None
+        _ => Instruction::Unknown
     }
 }
