@@ -17,9 +17,9 @@ pub(crate) enum Instruction {
     Xor(usize, usize),          //8xy3
     Add(usize, usize),          //8xy4
     Sub(usize, usize),          //8xy5
-    Shr(usize),                 //8x06
+    Shr(usize, usize),          //8xy6 (8x06)
     Rsb(usize, usize),          //8xy7
-    Shl(usize),                 //8x0E
+    Shl(usize, usize),          //8xyE (8x0E)
     Skne(usize, usize),         //9xy0
     Mvi(usize),                 //Annn
     Jmi(usize),                 //Bnnn
@@ -39,7 +39,10 @@ pub(crate) enum Instruction {
     Ldr(usize),                 //Fx65
 }
 
-fn extract_nibbles(opcode: u16, position: u8, length: u8) -> u16 {
+/// Extracts `length` nibbles from `opcode`, starting `position` nibbles from the right (LSB).
+///
+/// e.g. `extract_nibbles(0xABCD, 2, 1)` returns `0xB` (the third nibble from the right).
+pub(crate) fn extract_nibbles(opcode: u16, position: u8, length: u8) -> u16 {
     (opcode >> (4 * position)) & ((1 << (4 * length)) - 1)
 }
 
@@ -74,9 +77,9 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
             0x3 => Instruction::Xor(x, y),
             0x4 => Instruction::Add(x, y),
             0x5 => Instruction::Sub(x, y),
-            0x6 => Instruction::Shr(x),
+            0x6 => Instruction::Shr(x, y),
             0x7 => Instruction::Rsb(x, y),
-            0xE => Instruction::Shl(x),
+            0xE => Instruction::Shl(x, y),
 
             _ => Instruction::Unknown
         }

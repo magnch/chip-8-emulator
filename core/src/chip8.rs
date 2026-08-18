@@ -9,13 +9,15 @@
 //! let mut chip8 = chip8::Chip8::new();
 //! ```
 
+use rand;
+
+use crate::config::Config;
 use crate::display::Display;
 use crate::error::Chip8Error;
-use crate::memory::Memory;
 use crate::keypad::Keypad;
-use crate::opcode;
+use crate::memory::Memory;
+use crate::opcode::{self, extract_nibbles};
 use crate::opcode::Instruction;
-use rand;
 
 /// CPU state struct for use with Chip-8 debugger
 #[derive(Debug, Clone, Copy)]
@@ -31,6 +33,7 @@ pub struct CpuState {
 
 /// Chip8 emulator struct containing cpu, registers and peripherals
 pub struct Chip8 {
+    config: Config,
     ram: Memory,
     display: Display,
     keypad: Keypad,
@@ -52,6 +55,7 @@ impl Chip8 {
     /// Construct a Chip-8 object with default values
     pub fn new() -> Self {
         Chip8 {
+            config: Config::new(),
             ram: Memory::new(),
             display: Display::new(),
             keypad: Keypad::new(),
@@ -138,12 +142,12 @@ impl Chip8 {
             Instruction::Xor(x, y) => self.registers[x] ^= self.registers[y],
             Instruction::Add(x, y) => self.registers[x] = self.add_with_carry(x, y),
             Instruction::Sub(x, y) => self.registers[x] = self.sub_with_carry(x, y),
-            Instruction::Shr(x) => self.execute_shr(x),
+            Instruction::Shr(x, y) => self.execute_shr(x, y),
             Instruction::Rsb(x, y) => self.registers[x] = self.sub_with_carry(y, x),
-            Instruction::Shl(x) => self.execute_shl(x),
+            Instruction::Shl(x, y) => self.execute_shl(x, y),
             Instruction::Skne(x, y) => self.skip_if_not_eq(self.registers[x], self.registers[y]),
             Instruction::Mvi(nnn) => self.index = nnn,
-            Instruction::Jmi(nnn) => self.pc = nnn + self.registers[0] as usize,
+            Instruction::Jmi(nnn) => self.execute_jmi(nnn),
             Instruction::Rand(x, nn) => self.rand(x, nn),
             Instruction::Sprite(x, y, n) => self.execute_sprite(x, y, n)?,
             Instruction::Skpr(x) => if self.keypad.is_pressed(x)? {self.pc += 2},
@@ -219,17 +223,33 @@ impl Chip8 {
         self.set_vf(!carry as u8);
         result
     }
-
-    fn execute_shr(&mut self, x: usize) {
+    /// Execute Shr instruction
+    fn execute_shr(&mut self, x: usize, y: usize) {
+        if self.config.shift_uses_vy {
+            self.registers[x] = self.registers[y];
+        }
         // Store bit 0 in VF
         self.set_vf((x & 0x01) as u8);
         self.registers[x] >>= 1;
     }
-
-    fn execute_shl(&mut self, x: usize) {
+    /// Execute Shl instruction
+    fn execute_shl(&mut self, x: usize, y: usize) {
+        if self.config.shift_uses_vy {
+            self.registers[x] = self.registers[y];
+        }
         // Store bit 7 in VF
         self.set_vf((x & 0x80) as u8);
         self.registers[x] <<= 1;
+    }
+    /// Execute Jmi instruction
+    fn execute_jmi(&mut self, nnn: usize) {
+        let offset = if self.config.jmi_uses_vx {
+            let x = extract_nibbles(nnn as u16, 2, 1) as usize;
+            self.registers[x] as usize
+        } else {
+            self.registers[0] as usize
+        };
+        self.pc = nnn + offset;
     }
     /// Generate random number and load into register
     fn rand(&mut self, x: usize, nn: u8) {
