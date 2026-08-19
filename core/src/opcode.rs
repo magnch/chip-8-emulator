@@ -1,5 +1,6 @@
 use crate::utils::extract_nibbles;
 
+#[derive(Debug, PartialEq)]
 pub(crate) enum Instruction {
     Unknown,
     Cls,                        //00E0
@@ -105,5 +106,68 @@ pub(crate) fn decode (opcode: u16) -> Instruction {
         }
 
         _ => Instruction::Unknown
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decode_valid_opcodes() {
+        let cases = [
+            (0x00E0, Instruction::Cls),
+            (0x00EE, Instruction::Rts),
+            (0x00FE, Instruction::Low),
+            (0x00FF, Instruction::High),
+
+            (0x1234, Instruction::Jmp(0x234)),
+            (0x2ABC, Instruction::Jsr(0xABC)),
+            (0x3A7F, Instruction::SkeqConst(0xA, 0x7F)),
+            (0x4B12, Instruction::SkneConst(0xB, 0x12)),
+            (0x5120, Instruction::Skeq(0x1, 0x2)),
+            (0x6C42, Instruction::MovConst(0xC, 0x42)),
+            (0x7D05, Instruction::AddConst(0xD, 0x05)),
+
+            (0x8120, Instruction::Mov(0x1, 0x2)),
+            (0x8121, Instruction::Or(0x1, 0x2)),
+            (0x8122, Instruction::And(0x1, 0x2)),
+            (0x8123, Instruction::Xor(0x1, 0x2)),
+            (0x8124, Instruction::Add(0x1, 0x2)),
+            (0x8125, Instruction::Sub(0x1, 0x2)),
+            (0x8126, Instruction::Shr(0x1, 0x2)),
+            (0x8127, Instruction::Rsb(0x1, 0x2)),
+            (0x812E, Instruction::Shl(0x1, 0x2)),
+
+            (0x9120, Instruction::Skne(0x1, 0x2)),
+            (0xA123, Instruction::Mvi(0x123)),
+            (0xB456, Instruction::Jmi(0x456)),
+            (0xC8F0, Instruction::Rand(0x8, 0xF0)),
+            (0xDAB5, Instruction::Sprite(0xA, 0xB, 0x5)),
+            (0xEA9E, Instruction::Skpr(0xA)),
+            (0xEAA1, Instruction::Skup(0xA)),
+
+            (0xF107, Instruction::Gdelay(0x1)),
+            (0xF20A, Instruction::Key(0x2)),
+            (0xF315, Instruction::Sdelay(0x3)),
+            (0xF418, Instruction::Ssound(0x4)),
+            (0xF51E, Instruction::Adi(0x5)),
+            (0xF629, Instruction::Font(0x6)),
+            (0xF730, Instruction::Xfont(0x7)),
+            (0xF833, Instruction::Bcd(0x8)),
+            (0xF955, Instruction::Str(0x9)),
+            (0xFA65, Instruction::Ldr(0xA)),
+        ];
+
+        for (opcode, expected) in cases {
+            assert_eq!(decode(opcode), expected, "failed for opcode {opcode:#06X}");
+        }
+    }
+
+    #[test]
+    fn test_decode_invalid_opcode() {
+        assert_eq!(decode(0x0000), Instruction::Unknown);
+        assert_eq!(decode(0xFFFF), Instruction::Unknown);
     }
 }
