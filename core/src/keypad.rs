@@ -1,6 +1,6 @@
 use crate::error::Chip8Error;
 
-pub struct Keypad {
+pub(crate) struct Keypad {
     keys: [bool; Self::NUM_KEYS],
 }
 

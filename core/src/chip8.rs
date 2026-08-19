@@ -106,6 +106,18 @@ impl Chip8 {
             sound_timer: self.sound_timer,
         }
     }
+    /// Register key press
+    pub fn key_down(&mut self, key: usize) -> Result<(), Chip8Error> {
+        self.keypad.press_key(key)
+    }
+    /// Register key release
+    pub fn key_up(&mut self, key: usize) -> Result<(), Chip8Error> {
+        self.keypad.release_key(key)
+    }
+    /// Check if buzzer is beeping (sound timer > 0)
+    pub fn is_beeping(&self) -> bool {
+        self.sound_timer > 0
+    }
     /// Fetch next opcode from memory
     fn fetch(&mut self) -> Result<u16, Chip8Error> {
         // Fetch opcode from PC
@@ -151,8 +163,8 @@ impl Chip8 {
             Instruction::Jmi(nnn) => self.execute_jmi(nnn),
             Instruction::Rand(x, nn) => self.rand(x, nn),
             Instruction::Sprite(x, y, n) => self.execute_sprite(x, y, n)?,
-            Instruction::Skpr(x) => if self.keypad.is_pressed(x)? {self.pc += 2},
-            Instruction::Skup(x) => if !self.keypad.is_pressed(x)? {self.pc += 2},
+            Instruction::Skpr(x) => if self.keypad.is_pressed(self.registers[x] as usize)? {self.pc += 2},
+            Instruction::Skup(x) => if !self.keypad.is_pressed(self.registers[x] as usize)? {self.pc += 2},
             Instruction::Gdelay(x) => self.registers[x] = self.delay_timer,
             Instruction::Key(x) => self.execute_key(x),
             Instruction::Sdelay(x) => self.delay_timer = self.registers[x],
