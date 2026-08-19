@@ -44,9 +44,7 @@ impl AudioPlayer {
 
         Ok(AudioPlayer { device, is_playing: false })
     }
-
-    /// Called once per frame (or per timer tick) with chip8.is_beeping().
-    /// Only touches the device when the state actually changes.
+    
     pub fn update(&mut self, should_beep: bool) {
         if should_beep && !self.is_playing {
             self.device.resume();

@@ -4,6 +4,7 @@ pub struct Config {
     pub adi_flags_overflow: bool,
     pub key_waits_for_release: bool,
     pub str_ldr_increments_index: bool,
+    pub sprites_wrap_at_edge: bool,
 }
 
 impl Config {
@@ -13,7 +14,8 @@ impl Config {
             jmi_uses_vx: false,
             adi_flags_overflow: false,
             key_waits_for_release: false,
-            str_ldr_increments_index: false
+            str_ldr_increments_index: false,
+            sprites_wrap_at_edge: false,
         }
     }
 }

@@ -80,6 +80,6 @@ pub fn main() {
         audio_player.update(chip8.is_beeping());
         // Renderer
         renderer.render(chip8.get_display());
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 700));
+        ::std::thread::sleep(Duration::min(cpu_step_duration, timer_step_duration).saturating_sub(elapsed));
     }
 }

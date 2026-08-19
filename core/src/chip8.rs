@@ -62,7 +62,7 @@ impl Chip8 {
             keypad: Keypad::new(),
             registers: [0; Self::NUM_REGS],
             stack: [0; Self::STACK_SIZE],
-            sp: 1,
+            sp: 0,
             pc: 0,
             index: 0,
             delay_timer: 0,
@@ -286,7 +286,7 @@ impl Chip8 {
         let y_coord = y_coord % Display::HEIGHT;
 
         self.set_vf(0);
-        let sprite = self.ram.read_slice(self.index as usize, n as usize)?;
+        let sprite = self.ram.read_slice(self.index, n as usize)?;
         let collision = self.display.draw_sprite(x_coord, y_coord, sprite)?;
         if collision {
             self.set_vf(1);
