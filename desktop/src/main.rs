@@ -3,6 +3,8 @@ use sdl2::keyboard::Keycode;
 use std::time::{Duration, Instant};
 
 use chip8_core::chip8::Chip8;
+
+mod audio;
 mod gui;
 mod input;
 
@@ -15,12 +17,13 @@ pub fn main() {
 
     // Chip-8
     let mut chip8 = Chip8::new(); 
-    let rom = std::fs::read("roms/tests/6-keypad.ch8").expect("failed to read ROM");
+    let rom = std::fs::read("roms/tests/7-beep.ch8").expect("failed to read ROM");
     chip8.load_rom(rom.as_slice()).expect("failed to load ROM");
 
-    // Set up GUI and input
+    // Set up GUI, sound and input
     let sdl_context = sdl2::init().unwrap();
     let mut renderer = gui::Renderer::new(&sdl_context, WINDOW_SCALE, gui::Mode::Standard);
+    let mut audio_player = audio::AudioPlayer::new(&sdl_context).expect("failed to init audio player");
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     // Set up timing
@@ -73,6 +76,8 @@ pub fn main() {
             chip8.tick_timers();
             timer_accumulator -= timer_step_duration;
         }
+        // Audio player
+        audio_player.update(chip8.is_beeping());
         // Renderer
         renderer.render(chip8.get_display());
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 700));
