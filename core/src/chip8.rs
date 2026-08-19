@@ -16,8 +16,9 @@ use crate::display::Display;
 use crate::error::Chip8Error;
 use crate::keypad::Keypad;
 use crate::memory::Memory;
-use crate::opcode::{self, extract_nibbles};
+use crate::opcode;
 use crate::opcode::Instruction;
+use crate::utils;
 
 /// CPU state struct for use with Chip-8 debugger
 #[derive(Debug, Clone, Copy)]
@@ -140,10 +141,10 @@ impl Chip8 {
             Instruction::Or(x, y) => self.registers[x] |= self.registers[y],
             Instruction::And(x, y) => self.registers[x] &= self.registers[y],
             Instruction::Xor(x, y) => self.registers[x] ^= self.registers[y],
-            Instruction::Add(x, y) => self.registers[x] = self.add_with_carry(x, y),
-            Instruction::Sub(x, y) => self.registers[x] = self.sub_with_carry(x, y),
+            Instruction::Add(x, y) => self.execute_add(x, y),
+            Instruction::Sub(x, y) => self.execute_sub(x, y),
             Instruction::Shr(x, y) => self.execute_shr(x, y),
-            Instruction::Rsb(x, y) => self.registers[x] = self.sub_with_carry(y, x),
+            Instruction::Rsb(x, y) => self.execute_rsb(x, y),
             Instruction::Shl(x, y) => self.execute_shl(x, y),
             Instruction::Skne(x, y) => self.skip_if_not_eq(self.registers[x], self.registers[y]),
             Instruction::Mvi(nnn) => self.index = nnn,
@@ -156,7 +157,7 @@ impl Chip8 {
             Instruction::Key(x) => self.execute_key(x),
             Instruction::Sdelay(x) => self.delay_timer = self.registers[x],
             Instruction::Ssound(x) => self.sound_timer = self.registers[x],
-            Instruction::Adi(x) => self.index += self.registers[x] as usize,
+            Instruction::Adi(x) => self.execute_adi(x),
             Instruction::Font(x) => self.execute_font(x),
             Instruction::Xfont(_x) => (),
             Instruction::Bcd(x) => self.execute_bcd(x)?,
@@ -211,17 +212,23 @@ impl Chip8 {
             self.pc += 2;
         }
     }
-    /// Add x and y, and store carry bit in VF
-    fn add_with_carry(&mut self, x: usize, y: usize) -> u8 {
-        let (result, carry) = self.registers[x].overflowing_add(self.registers[y]);
-        self.set_vf(carry as u8);
-        result
+    /// Execute Add instruction
+    fn execute_add(&mut self, x: usize, y: usize) {
+        let (result, carry) = utils::add_with_carry(self.registers[x], self.registers[y]);
+        self.registers[x] = result;
+        self.set_vf(carry);
     }
-    // Substract y from x, and store borrow bit in VF
-    fn sub_with_carry(&mut self, x: usize, y: usize) -> u8 {
-        let (result, carry) = self.registers[x].overflowing_sub(self.registers[y]);
-        self.set_vf(!carry as u8);
-        result
+    /// Execute Sub instruction
+    fn execute_sub(&mut self, x: usize, y: usize) {
+        let (result, borrow) = utils::sub_with_borrow(self.registers[x], self.registers[y]);
+        self.registers[x] = result;
+        self.set_vf(borrow);
+    }
+    /// Execute Rsb instruction
+    fn execute_rsb(&mut self, x: usize, y: usize){
+        let (result, borrow) = utils::sub_with_borrow(self.registers[y], self.registers[x]);
+        self.registers[x] = result;
+        self.set_vf(borrow);
     }
     /// Execute Shr instruction
     fn execute_shr(&mut self, x: usize, y: usize) {
@@ -229,8 +236,9 @@ impl Chip8 {
             self.registers[x] = self.registers[y];
         }
         // Store bit 0 in VF
-        self.set_vf((x & 0x01) as u8);
+        let carry = utils::extract_bit(self.registers[x], 0);
         self.registers[x] >>= 1;
+        self.set_vf(carry);
     }
     /// Execute Shl instruction
     fn execute_shl(&mut self, x: usize, y: usize) {
@@ -238,13 +246,14 @@ impl Chip8 {
             self.registers[x] = self.registers[y];
         }
         // Store bit 7 in VF
-        self.set_vf((x & 0x80) as u8);
+        let carry = utils::extract_bit(self.registers[x], 7);
         self.registers[x] <<= 1;
+        self.set_vf(carry);
     }
     /// Execute Jmi instruction
     fn execute_jmi(&mut self, nnn: usize) {
         let offset = if self.config.jmi_uses_vx {
-            let x = extract_nibbles(nnn as u16, 2, 1) as usize;
+            let x = utils::extract_nibbles(nnn as u16, 2, 1) as usize;
             self.registers[x] as usize
         } else {
             self.registers[0] as usize
@@ -281,6 +290,17 @@ impl Chip8 {
             self.pc -= 2; // Stay at same instruction
         }
     }
+    /// Execute Adi instruction
+    fn execute_adi(&mut self, x: usize) {
+        let mut value = self.index + self.registers[x] as usize;
+        if value > 0x0FFF {
+            value &= 0x0FFF;
+            if self.config.adi_flags_overflow {
+                self.set_vf(1);
+            }
+        }
+        self.index = value;
+    }
     /// Execute Font instruction
     fn execute_font(&mut self, x: usize) {
         let hex_char: u8 = self.registers[x] & 0x0F;
@@ -296,14 +316,24 @@ impl Chip8 {
     /// Execute Str instruction
     fn execute_str(&mut self, x: usize) -> Result<(), Chip8Error> {
         for i in 0..=x {
-            self.ram.write(self.index + i, self.registers[i])?;
+            if self.config.str_ldr_increments_index {
+                self.ram.write(self.index, self.registers[i])?;
+                self.index += 1;
+            } else {
+                self.ram.write(self.index + i, self.registers[i])?;
+            }    
         }
         Ok(())
     }
     /// Execute Ldr instruction
     fn execute_ldr(&mut self, x: usize) -> Result<(), Chip8Error> {
         for i in 0..=x {
-            self.registers[i] = self.ram.read(self.index + i)?;
+            if self.config.str_ldr_increments_index {
+                self.registers[i] = self.ram.read(self.index)?;
+                self.index += 1;
+            } else {
+                self.registers[i] = self.ram.read(self.index + i)?;
+            }    
         }
         Ok(())
     }

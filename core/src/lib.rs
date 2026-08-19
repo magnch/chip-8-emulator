@@ -7,3 +7,4 @@ pub mod memory;
 mod font;
 mod keypad;
 mod opcode;
+mod utils;

@@ -15,7 +15,7 @@ pub fn main() {
 
     // Chip-8
     let mut chip8 = Chip8::new(); 
-    let rom = std::fs::read("roms/test_opcode.ch8").expect("failed to read ROM");
+    let rom = std::fs::read("roms/4-flags.ch8").expect("failed to read ROM");
     chip8.load_rom(rom.as_slice()).expect("failed to load ROM");
 
     // Set up GUI and input

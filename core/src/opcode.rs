@@ -1,3 +1,5 @@
+use crate::utils::extract_nibbles;
+
 pub(crate) enum Instruction {
     Unknown,
     Cls,                        //00E0
@@ -37,13 +39,6 @@ pub(crate) enum Instruction {
     Bcd(usize),                 //Fx33
     Str(usize),                 //Fx55
     Ldr(usize),                 //Fx65
-}
-
-/// Extracts `length` nibbles from `opcode`, starting `position` nibbles from the right (LSB).
-///
-/// e.g. `extract_nibbles(0xABCD, 2, 1)` returns `0xB` (the third nibble from the right).
-pub(crate) fn extract_nibbles(opcode: u16, position: u8, length: u8) -> u16 {
-    (opcode >> (4 * position)) & ((1 << (4 * length)) - 1)
 }
 
 pub(crate) fn decode (opcode: u16) -> Instruction {
