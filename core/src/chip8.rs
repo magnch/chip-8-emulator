@@ -47,6 +47,12 @@ pub struct Chip8 {
     sound_timer: u8,
 }
 
+impl Default for Chip8 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Chip8 {
     /// Max number of elements on stack
     pub(crate) const STACK_SIZE: usize = 16;

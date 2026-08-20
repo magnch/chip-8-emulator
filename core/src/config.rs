@@ -14,6 +14,12 @@ pub struct Config {
     pub sprites_wrap_at_edge: bool,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Config {
     /// Create the default compatibility configuration.
     pub fn new() -> Self {

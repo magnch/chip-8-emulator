@@ -5,6 +5,12 @@ pub struct Display {
     content: [[bool; Self::WIDTH]; Self::HEIGHT],
 }
 
+impl Default for Display {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Display {
     /// Display width in pixels.
     pub const WIDTH: usize = 64;

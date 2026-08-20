@@ -5,6 +5,12 @@ pub struct Memory {
     content: [u8; Self::MEMORY_SIZE],
 }
 
+impl Default for Memory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Memory {
     const MEMORY_SIZE: usize = 4096;
     pub(crate) const FONT_START_ADDR: usize = 0x050;

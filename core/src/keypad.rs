@@ -4,6 +4,12 @@ pub(crate) struct Keypad {
     keys: [bool; Self::NUM_KEYS],
 }
 
+impl Default for Keypad {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Keypad {
     /// Number of keys in the CHIP-8 keypad.
     const NUM_KEYS: usize = 16;
