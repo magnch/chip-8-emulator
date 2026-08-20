@@ -50,3 +50,28 @@ impl Keypad {
         key >= Self::NUM_KEYS
     }
 }
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_keypad() {
+        let mut keypad = Keypad::new();
+
+        for i in 0..Keypad::NUM_KEYS {
+            assert!(!keypad.out_of_bounds(i));
+            assert!(!keypad.is_pressed(i).expect(""));
+            assert!(!keypad.press_key(i).is_err());
+            assert!(keypad.is_pressed(i).expect(""));
+            assert!(!keypad.release_key(i).is_err());
+            assert!(!keypad.is_pressed(i).expect(""));
+        }
+        assert!(!keypad.is_pressed_any().1);
+        assert!(keypad.out_of_bounds(16));
+        assert!(keypad.press_key(16).is_err());
+        assert!(!keypad.press_key(0xA).is_err());
+        assert_eq!(keypad.is_pressed_any(), (0xA, true));
+    }
+}
