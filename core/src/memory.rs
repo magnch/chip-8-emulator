@@ -1,5 +1,6 @@
 use crate::error::Chip8Error;
 
+/// The 4 KiB memory space used by a CHIP-8 program.
 pub struct Memory {
     content: [u8; Self::MEMORY_SIZE],
 }
@@ -11,12 +12,14 @@ impl Memory {
     pub(crate) const FONT_CHAR_SIZE:usize = 5;
     pub(crate) const ROM_START_ADDR: usize = 0x200;
 
+    /// Create memory and load the built-in hexadecimal font.
     pub(crate) fn new() -> Self {
         let mut memory = Memory{ content: [0; Self::MEMORY_SIZE] };
         memory.load_font();
         memory
     }
 
+    /// Read one byte from memory.
     pub(crate) fn read(&self, address: usize) -> Result<u8, Chip8Error> {
         if self.out_of_bounds(address) {
             Err(Chip8Error::MemoryOutOfBounds { address })
@@ -25,6 +28,7 @@ impl Memory {
         }
     }
 
+    /// Write one byte to memory.
     pub(crate) fn write(&mut self, address: usize, data: u8) -> Result<(), Chip8Error> {
         if self.out_of_bounds(address) {
             Err(Chip8Error::MemoryOutOfBounds { address })
@@ -34,6 +38,7 @@ impl Memory {
         }
     }
 
+    /// Read a contiguous range of memory.
     pub(crate) fn read_slice(&self, address: usize, length: usize) -> Result<&[u8], Chip8Error> {
         let end = address + length;
         if end > Self::MEMORY_SIZE {
@@ -43,6 +48,7 @@ impl Memory {
         }
     }
 
+    /// Write a contiguous range of memory.
     pub(crate) fn write_slice(&mut self, address: usize, data: &[u8], length: usize) -> Result<(), Chip8Error> {
         let end = address + length;
         if end > Self::MEMORY_SIZE {
@@ -53,6 +59,7 @@ impl Memory {
         }
     }
 
+    /// Copy a ROM into program memory starting at `0x200`.
     pub(crate) fn load_rom(&mut self, rom: &[u8]) -> Result<(), Chip8Error> {
         let rom_end_addr = Self::ROM_START_ADDR + rom.len();
         let max_size = Self::MEMORY_SIZE - Self::ROM_START_ADDR;
@@ -66,11 +73,13 @@ impl Memory {
         
     }
 
+    /// Load the standard CHIP-8 hexadecimal font into memory.
     fn load_font(&mut self) {
         let font = crate::font::FONT_SET;
         self.content[Self::FONT_START_ADDR..=Self::FONT_END_ADDR].copy_from_slice(&font);
     }
 
+    /// Check whether an address is outside the 4 KiB memory space.
     fn out_of_bounds(&self, address: usize) -> bool {
         address >= Self::MEMORY_SIZE
     }

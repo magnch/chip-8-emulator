@@ -1,21 +1,26 @@
 use crate::error::Chip8Error;
 
+/// A 64 x 32 monochrome CHIP-8 display buffer.
 pub struct Display {
     content: [[bool; Self::WIDTH]; Self::HEIGHT],
 }
 
 impl Display {
+    /// Display width in pixels.
     pub const WIDTH: usize = 64;
+    /// Display height in pixels.
     pub const HEIGHT: usize = 32;
 
     pub(crate) fn new() -> Self {
         Display { content: [[false; Self::WIDTH]; Self::HEIGHT] }
     }
 
+    /// Return the current framebuffer.
     pub fn get_content(&self) -> &[[bool; Self::WIDTH]; Self::HEIGHT] {
         &self.content
     }
 
+    /// Set one pixel without applying sprite XOR behavior.
     pub(crate) fn set_pixel(&mut self, row: usize, col: usize, value: bool) -> Result<(), Chip8Error> {
         if self.out_of_bounds(row, col) {
             Err(Chip8Error::DisplayOutOfBounds { row, col })
@@ -25,6 +30,7 @@ impl Display {
         }
     }
 
+    /// Clear every pixel in the framebuffer.
     pub(crate) fn clear(&mut self) {
         for row in self.content.iter_mut() {
             for pixel in row.iter_mut() {
@@ -33,6 +39,7 @@ impl Display {
         }
     }
 
+    /// Draw a sprite using XOR semantics and return whether a collision occurred.
     pub(crate) fn draw_sprite(&mut self, x_start: usize, y_start: usize, sprite: &[u8]) -> Result<bool, Chip8Error> {
         if self.out_of_bounds(y_start, x_start) {
             return Err(Chip8Error::DisplayOutOfBounds { row: (y_start), col: (x_start) })
@@ -66,6 +73,7 @@ impl Display {
         Ok(collision)
     }
 
+    /// Check whether a display coordinate is outside the framebuffer.
     fn out_of_bounds(&self, row: usize, col: usize) -> bool {
         row >= Self::HEIGHT || col >= Self::WIDTH
     }

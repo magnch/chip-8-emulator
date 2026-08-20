@@ -1,5 +1,7 @@
+/// Number of bytes used by the built-in hexadecimal font.
 pub(crate) const FONT_SET_SIZE: usize = 80;
 
+/// Built-in 4 x 5 pixel font for hexadecimal characters `0` through `F`.
 pub(crate) const FONT_SET: [u8; FONT_SET_SIZE] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1

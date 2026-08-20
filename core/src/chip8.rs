@@ -20,7 +20,7 @@ use crate::opcode;
 use crate::opcode::Instruction;
 use crate::utils;
 
-/// CPU state struct for use with Chip-8 debugger
+/// Snapshot of the emulator state for debugger integrations.
 #[derive(Debug, Clone, Copy)]
 pub struct CpuState {
     registers: [u8; Chip8::NUM_REGS],
@@ -32,7 +32,7 @@ pub struct CpuState {
     sound_timer: u8,
 }
 
-/// Chip8 emulator struct containing cpu, registers and peripherals
+/// CHIP-8 virtual machine state and instruction executor.
 pub struct Chip8 {
     config: Config,
     ram: Memory,
@@ -53,7 +53,7 @@ impl Chip8 {
     /// Number of CPU registers
     pub(crate) const NUM_REGS: usize = 16;
 
-    /// Construct a Chip-8 object with default values
+    /// Create a reset CHIP-8 machine.
     pub fn new() -> Self {
         Chip8 {
             config: Config::new(),
@@ -69,32 +69,32 @@ impl Chip8 {
             sound_timer: 0,
         }
     }
-    /// Load ROM into memory from an array slice
+    /// Load a ROM and reset the program counter to its start address.
     pub fn load_rom(&mut self, rom: &[u8]) -> Result<(), Chip8Error> {
         self.ram.load_rom(rom)?;
         self.pc = Memory::ROM_START_ADDR;
         Ok(())
     }
-    /// Step through one CPU cycle
+    /// Fetch, decode, and execute one instruction.
     pub fn step(&mut self) -> Result<(), Chip8Error> {
         let opcode = self.fetch()?;
         let instruction = self.decode(opcode)?;
         self.execute(instruction)
     }
-    /// Decrement delay and sound timers
+    /// Decrement the delay and sound timers by one tick.
     pub fn tick_timers(&mut self) {
         self.delay_timer = self.delay_timer.saturating_sub(1);
         self.sound_timer = self.sound_timer.saturating_sub(1);
     }
-    /// Get display handle
+    /// Borrow the current display buffer.
     pub fn get_display(&self) -> &Display {
         &self.display
     }
-    /// Get memory handle
+    /// Borrow the emulator memory.
     pub fn get_memory(&self) -> &Memory {
         &self.ram
     }
-    /// Get CPU state
+    /// Copy the current CPU state for inspection.
     pub fn get_state(&self) -> CpuState {
         CpuState {
             registers: self.registers,
@@ -106,15 +106,15 @@ impl Chip8 {
             sound_timer: self.sound_timer,
         }
     }
-    /// Register key press
+    /// Mark a CHIP-8 key as pressed.
     pub fn key_down(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.keypad.press_key(key)
     }
-    /// Register key release
+    /// Mark a CHIP-8 key as released.
     pub fn key_up(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.keypad.release_key(key)
     }
-    /// Check if buzzer is beeping (sound timer > 0)
+    /// Return whether the sound timer is active.
     pub fn is_beeping(&self) -> bool {
         self.sound_timer > 0
     }

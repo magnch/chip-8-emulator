@@ -12,17 +12,19 @@ pub(crate) fn extract_nibbles(number: u16, position: u8, length: u8) -> u16 {
     (number as u32 >> shift) as u16 & mask
 }
 
-/// Extracts bit from number in `position`, counting from LSB
+/// Extract a bit from `byte`, counting positions from the least significant bit.
 pub(crate) fn extract_bit(byte: u8, position: u8) -> u8 {
     (byte >> position) & 1
 }
 
-/// Add x and y, and return result and carry
+/// Add two bytes and return the wrapped result and carry flag.
 pub(crate) fn add_with_carry(lhs: u8, rhs: u8) -> (u8, u8) {
     let (result, overflow) = lhs.overflowing_add(rhs);
     (result, overflow as u8)
 }
-// Substract y from x, and return result and borrow
+/// Subtract two bytes and return the wrapped result and CHIP-8 `VF` value.
+///
+/// `VF` is `1` when no borrow occurs and `0` when a borrow occurs.
 pub(crate) fn sub_with_borrow(lhs: u8, rhs: u8) -> (u8, u8) {
     let (result, overflow) = lhs.overflowing_sub(rhs);
     (result, !overflow as u8)

@@ -5,12 +5,15 @@ pub(crate) struct Keypad {
 }
 
 impl Keypad {
+    /// Number of keys in the CHIP-8 keypad.
     const NUM_KEYS: usize = 16;
 
+    /// Create a keypad with every key released.
     pub(crate) fn new() -> Self {
         Keypad { keys: [false; Self::NUM_KEYS] }
     }
 
+    /// Check a key state, returning an error for values outside `0..16`.
     pub(crate) fn is_pressed(&self, key: usize) -> Result<bool, Chip8Error> {
         if self.out_of_bounds(key) {
             Err(Chip8Error::KeypadOutOfBounds { key })
@@ -19,6 +22,7 @@ impl Keypad {
         }
     }
 
+    /// Return the lowest-numbered pressed key, or `(0xFF, false)` if none is pressed.
     pub(crate) fn is_pressed_any(&self) -> (usize, bool) {
         for (key, pressed) in self.keys.iter().enumerate() {
             if *pressed {
@@ -28,6 +32,7 @@ impl Keypad {
         (0xFF, false)
     }
 
+    /// Mark a key as pressed.
     pub(crate) fn press_key(&mut self, key: usize) -> Result<(), Chip8Error> {
         if self.out_of_bounds(key) {
             Err(Chip8Error::KeypadOutOfBounds { key })
@@ -37,6 +42,7 @@ impl Keypad {
         }
     }
 
+    /// Mark a key as released.
     pub(crate) fn release_key(&mut self, key: usize) -> Result<(), Chip8Error> {
         if self.out_of_bounds(key) {
             Err(Chip8Error::KeypadOutOfBounds { key })
@@ -46,6 +52,7 @@ impl Keypad {
         }
     }
 
+    /// Check whether a key index is outside the keypad range.
     fn out_of_bounds(&self, key: usize) -> bool {
         key >= Self::NUM_KEYS
     }

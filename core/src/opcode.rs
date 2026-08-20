@@ -1,6 +1,7 @@
 use crate::utils::extract_nibbles;
 
 #[derive(Debug, PartialEq)]
+/// Decoded CHIP-8 instruction and its operands.
 pub(crate) enum Instruction {
     Unknown,
     Cls,                        //00E0
@@ -42,7 +43,8 @@ pub(crate) enum Instruction {
     Ldr(usize),                 //Fx65
 }
 
-pub(crate) fn decode (opcode: u16) -> Instruction {
+/// Decode a 16-bit opcode into an instruction.
+pub(crate) fn decode(opcode: u16) -> Instruction {
     let nibble  = extract_nibbles(opcode, 3, 1);
     let x       = extract_nibbles(opcode, 2, 1) as usize;
     let y       = extract_nibbles(opcode, 1, 1) as usize;
