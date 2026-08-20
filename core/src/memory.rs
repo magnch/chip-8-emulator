@@ -9,12 +9,14 @@ impl Memory {
     const MEMORY_SIZE: usize = 4096;
     pub(crate) const FONT_START_ADDR: usize = 0x050;
     const FONT_END_ADDR: usize = 0x09F;
-    pub(crate) const FONT_CHAR_SIZE:usize = 5;
+    pub(crate) const FONT_CHAR_SIZE: usize = 5;
     pub(crate) const ROM_START_ADDR: usize = 0x200;
 
     /// Create memory and load the built-in hexadecimal font.
     pub(crate) fn new() -> Self {
-        let mut memory = Memory{ content: [0; Self::MEMORY_SIZE] };
+        let mut memory = Memory {
+            content: [0; Self::MEMORY_SIZE],
+        };
         memory.load_font();
         memory
     }
@@ -44,12 +46,17 @@ impl Memory {
         if end > Self::MEMORY_SIZE {
             Err(Chip8Error::MemoryOutOfBounds { address })
         } else {
-            Ok(&self.content[address..address+length])
+            Ok(&self.content[address..address + length])
         }
     }
 
     /// Write a contiguous range of memory.
-    pub(crate) fn write_slice(&mut self, address: usize, data: &[u8], length: usize) -> Result<(), Chip8Error> {
+    pub(crate) fn write_slice(
+        &mut self,
+        address: usize,
+        data: &[u8],
+        length: usize,
+    ) -> Result<(), Chip8Error> {
         let end = address + length;
         if end > Self::MEMORY_SIZE {
             Err(Chip8Error::MemoryOutOfBounds { address })
@@ -65,12 +72,14 @@ impl Memory {
         let max_size = Self::MEMORY_SIZE - Self::ROM_START_ADDR;
 
         if self.out_of_bounds(rom_end_addr) {
-            Err(Chip8Error::RomTooLarge { size: (rom.len()), max_size: (max_size) })
+            Err(Chip8Error::RomTooLarge {
+                size: (rom.len()),
+                max_size: (max_size),
+            })
         } else {
             self.content[Self::ROM_START_ADDR..rom_end_addr].copy_from_slice(rom);
             Ok(())
         }
-        
     }
 
     /// Load the standard CHIP-8 hexadecimal font into memory.
@@ -85,21 +94,24 @@ impl Memory {
     }
 }
 
-
 #[cfg(test)]
 
 mod tests {
     use crate::memory;
 
-use super::*;
+    use super::*;
 
     #[test]
     fn test_read_write() {
         let mut memory = Memory::new();
         for i in 0..Memory::MEMORY_SIZE {
             let write_value: u8 = (i % 256) as u8;
-            memory.write(i, write_value).expect("write to valid address should succeed");
-            let read_value = memory.read(i).expect("read from valid address should succeed");
+            memory
+                .write(i, write_value)
+                .expect("write to valid address should succeed");
+            let read_value = memory
+                .read(i)
+                .expect("read from valid address should succeed");
 
             assert_eq!(read_value, write_value);
         }
@@ -109,8 +121,12 @@ use super::*;
     fn test_read_write_slice() {
         let mut memory = Memory::new();
         let write_data: [u8; Memory::MEMORY_SIZE] = [0xAB; Memory::MEMORY_SIZE];
-        memory.write_slice(0, &write_data, Memory::MEMORY_SIZE).expect("tried to write to valid address range");
-        let read_data = memory.read_slice(0, Memory::MEMORY_SIZE).expect("tried to read from valid address range");
+        memory
+            .write_slice(0, &write_data, Memory::MEMORY_SIZE)
+            .expect("tried to write to valid address range");
+        let read_data = memory
+            .read_slice(0, Memory::MEMORY_SIZE)
+            .expect("tried to read from valid address range");
 
         assert_eq!(*read_data, write_data);
     }
@@ -119,7 +135,9 @@ use super::*;
     fn test_write_empty_slice() {
         let mut memory = Memory::new();
         let write_data: [u8; 0] = [];
-        memory.write_slice(0, &write_data, 0).expect("should handle empty slices");
+        memory
+            .write_slice(0, &write_data, 0)
+            .expect("should handle empty slices");
     }
 
     #[test]
@@ -138,7 +156,12 @@ use super::*;
         let mut memory = Memory::new();
         memory.load_font();
         let font = crate::font::FONT_SET;
-        assert_eq!(font, memory.read_slice(Memory::FONT_START_ADDR, crate::font::FONT_SET_SIZE).expect(""));
+        assert_eq!(
+            font,
+            memory
+                .read_slice(Memory::FONT_START_ADDR, crate::font::FONT_SET_SIZE)
+                .expect("")
+        );
     }
 
     #[test]
@@ -148,9 +171,11 @@ use super::*;
         let oversized_rom: [u8; 5000] = [0xFF; 5000];
 
         memory.load_rom(&rom).expect("ROM size within limits");
-        assert_eq!(memory.read_slice(Memory::ROM_START_ADDR, 10).expect(""), &rom);
+        assert_eq!(
+            memory.read_slice(Memory::ROM_START_ADDR, 10).expect(""),
+            &rom
+        );
 
         assert!(memory.load_rom(&oversized_rom).is_err());
-    }   
-
+    }
 }

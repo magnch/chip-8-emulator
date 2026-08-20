@@ -7,8 +7,8 @@ use sdl2::video::Window;
 use chip8_core::display::Display;
 
 pub enum Mode {
-    Standard,
-    Debugger
+    
+    Debugger,
 }
 
 pub struct Renderer {
@@ -24,7 +24,8 @@ impl Renderer {
         let height = (Display::HEIGHT * scale) as u32;
 
         let video_subsystem = sdl_context.video().unwrap();
-        let window = video_subsystem.window("chip-8 emulator", width, height)
+        let window = video_subsystem
+            .window("chip-8 emulator", width, height)
             .position_centered()
             .build()
             .unwrap();
@@ -34,7 +35,11 @@ impl Renderer {
         canvas.clear();
         canvas.present();
 
-        Self { canvas, scale, mode }
+        Self {
+            canvas,
+            scale,
+            mode,
+        }
     }
 
     pub fn render(&mut self, display: &Display) {
@@ -59,8 +64,14 @@ impl Renderer {
             (x * self.scale) as i32,
             (y * self.scale) as i32,
             self.scale as u32,
-            self.scale as u32
+            self.scale as u32,
         );
         self.canvas.fill_rect(pixel).unwrap();
+    }
+}
+      );
+        self.canvas.fill_rect(pixel).unwrap();
+    }
+}       self.canvas.fill_rect(pixel).unwrap();
     }
 }

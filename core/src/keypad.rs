@@ -10,7 +10,9 @@ impl Keypad {
 
     /// Create a keypad with every key released.
     pub(crate) fn new() -> Self {
-        Keypad { keys: [false; Self::NUM_KEYS] }
+        Keypad {
+            keys: [false; Self::NUM_KEYS],
+        }
     }
 
     /// Check a key state, returning an error for values outside `0..16`.
@@ -26,7 +28,7 @@ impl Keypad {
     pub(crate) fn is_pressed_any(&self) -> (usize, bool) {
         for (key, pressed) in self.keys.iter().enumerate() {
             if *pressed {
-               return (key, true);
+                return (key, true);
             }
         }
         (0xFF, false)
@@ -57,7 +59,6 @@ impl Keypad {
         key >= Self::NUM_KEYS
     }
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -7,19 +7,21 @@ struct SquareWave {
     volume: f32,
 }
 
-
 impl AudioCallback for SquareWave {
     type Channel = f32;
 
     fn callback(&mut self, out: &mut [f32]) {
         for sample in out.iter_mut() {
             // Generate square wave for a buzzer sound
-            *sample = if self.phase <= 0.5 { self.volume } else { -self.volume };
+            *sample = if self.phase <= 0.5 {
+                self.volume
+            } else {
+                -self.volume
+            };
             self.phase = (self.phase + self.phase_inc) % 1.0;
         }
     }
 }
-
 
 pub struct AudioPlayer {
     device: AudioDevice<SquareWave>,
@@ -42,9 +44,12 @@ impl AudioPlayer {
             volume: 0.05,
         })?;
 
-        Ok(AudioPlayer { device, is_playing: false })
+        Ok(AudioPlayer {
+            device,
+            is_playing: false,
+        })
     }
-    
+
     pub fn update(&mut self, should_beep: bool) {
         if should_beep && !self.is_playing {
             self.device.resume();

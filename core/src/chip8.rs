@@ -1,8 +1,8 @@
 //! # Chip8 emulator core module
-//! 
+//!
 //! This module provides the Chip8 struct for running the emulator core logic
 //! and interfacing with the main application
-//! 
+//!
 //! ## Examples
 //! ```
 //! use chip8_core::chip8;
@@ -163,8 +163,16 @@ impl Chip8 {
             Instruction::Jmi(nnn) => self.execute_jmi(nnn),
             Instruction::Rand(x, nn) => self.rand(x, nn),
             Instruction::Sprite(x, y, n) => self.execute_sprite(x, y, n)?,
-            Instruction::Skpr(x) => if self.keypad.is_pressed(self.registers[x] as usize)? {self.pc += 2},
-            Instruction::Skup(x) => if !self.keypad.is_pressed(self.registers[x] as usize)? {self.pc += 2},
+            Instruction::Skpr(x) => {
+                if self.keypad.is_pressed(self.registers[x] as usize)? {
+                    self.pc += 2
+                }
+            }
+            Instruction::Skup(x) => {
+                if !self.keypad.is_pressed(self.registers[x] as usize)? {
+                    self.pc += 2
+                }
+            }
             Instruction::Gdelay(x) => self.registers[x] = self.delay_timer,
             Instruction::Key(x) => self.execute_key(x),
             Instruction::Sdelay(x) => self.delay_timer = self.registers[x],
@@ -203,7 +211,6 @@ impl Chip8 {
     }
 }
 
-
 // CPU execute helper functions
 impl Chip8 {
     /// Execute Jsr instruction
@@ -237,7 +244,7 @@ impl Chip8 {
         self.set_vf(borrow);
     }
     /// Execute Rsb instruction
-    fn execute_rsb(&mut self, x: usize, y: usize){
+    fn execute_rsb(&mut self, x: usize, y: usize) {
         let (result, borrow) = utils::sub_with_borrow(self.registers[y], self.registers[x]);
         self.registers[x] = result;
         self.set_vf(borrow);
@@ -320,9 +327,9 @@ impl Chip8 {
         self.index = address;
     }
     /// Execute Bcd instruction
-    fn execute_bcd(&mut self, x:usize) -> Result<(), Chip8Error> {
+    fn execute_bcd(&mut self, x: usize) -> Result<(), Chip8Error> {
         let num = self.registers[x];
-        let digits = &[num/100, (num % 100) / 10, num % 10];
+        let digits = &[num / 100, (num % 100) / 10, num % 10];
         self.ram.write_slice(self.index, digits, 3)
     }
     /// Execute Str instruction
@@ -333,7 +340,7 @@ impl Chip8 {
                 self.index += 1;
             } else {
                 self.ram.write(self.index + i, self.registers[i])?;
-            }    
+            }
         }
         Ok(())
     }
@@ -345,19 +352,20 @@ impl Chip8 {
                 self.index += 1;
             } else {
                 self.registers[i] = self.ram.read(self.index + i)?;
-            }    
+            }
         }
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn load_opcode(chip8: &mut Chip8, opcode: u16) {
-        chip8.load_rom(&[(opcode >> 8) as u8, opcode as u8]).unwrap();
+        chip8
+            .load_rom(&[(opcode >> 8) as u8, opcode as u8])
+            .unwrap();
     }
 
     #[test]
@@ -466,7 +474,10 @@ mod tests {
         for value in 0..Chip8::STACK_SIZE {
             chip8.push(value as u16).unwrap();
         }
-        assert_eq!(chip8.push(Chip8::STACK_SIZE as u16), Err(Chip8Error::StackOverflow));
+        assert_eq!(
+            chip8.push(Chip8::STACK_SIZE as u16),
+            Err(Chip8Error::StackOverflow)
+        );
     }
 
     #[test]
@@ -527,7 +538,10 @@ mod tests {
 
         chip8.key_up(0xA).unwrap();
         assert_eq!(chip8.keypad.is_pressed(0xA), Ok(false));
-        assert_eq!(chip8.key_down(0x10), Err(Chip8Error::KeypadOutOfBounds { key: 0x10 }));
+        assert_eq!(
+            chip8.key_down(0x10),
+            Err(Chip8Error::KeypadOutOfBounds { key: 0x10 })
+        );
     }
 
     #[test]
@@ -692,7 +706,10 @@ mod tests {
 
                 chip8.execute(Instruction::Font(1)).unwrap();
 
-                assert_eq!(chip8.index, Memory::FONT_START_ADDR + 0x0B * Memory::FONT_CHAR_SIZE);
+                assert_eq!(
+                    chip8.index,
+                    Memory::FONT_START_ADDR + 0x0B * Memory::FONT_CHAR_SIZE
+                );
             }
 
             #[test]

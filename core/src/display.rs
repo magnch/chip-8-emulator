@@ -12,7 +12,9 @@ impl Display {
     pub const HEIGHT: usize = 32;
 
     pub(crate) fn new() -> Self {
-        Display { content: [[false; Self::WIDTH]; Self::HEIGHT] }
+        Display {
+            content: [[false; Self::WIDTH]; Self::HEIGHT],
+        }
     }
 
     /// Return the current framebuffer.
@@ -21,7 +23,12 @@ impl Display {
     }
 
     /// Set one pixel without applying sprite XOR behavior.
-    pub(crate) fn set_pixel(&mut self, row: usize, col: usize, value: bool) -> Result<(), Chip8Error> {
+    pub(crate) fn set_pixel(
+        &mut self,
+        row: usize,
+        col: usize,
+        value: bool,
+    ) -> Result<(), Chip8Error> {
         if self.out_of_bounds(row, col) {
             Err(Chip8Error::DisplayOutOfBounds { row, col })
         } else {
@@ -40,9 +47,17 @@ impl Display {
     }
 
     /// Draw a sprite using XOR semantics and return whether a collision occurred.
-    pub(crate) fn draw_sprite(&mut self, x_start: usize, y_start: usize, sprite: &[u8]) -> Result<bool, Chip8Error> {
+    pub(crate) fn draw_sprite(
+        &mut self,
+        x_start: usize,
+        y_start: usize,
+        sprite: &[u8],
+    ) -> Result<bool, Chip8Error> {
         if self.out_of_bounds(y_start, x_start) {
-            return Err(Chip8Error::DisplayOutOfBounds { row: (y_start), col: (x_start) })
+            return Err(Chip8Error::DisplayOutOfBounds {
+                row: (y_start),
+                col: (x_start),
+            });
         }
 
         let mut collision = false;
@@ -65,9 +80,7 @@ impl Display {
                             collision = true;
                         }
                     }
-
                 }
-
             }
         }
         Ok(collision)
@@ -79,8 +92,6 @@ impl Display {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,7 +100,10 @@ mod tests {
     fn test_new_display_is_empty() {
         let display = Display::new();
 
-        assert_eq!(display.get_content(), &[[false; Display::WIDTH]; Display::HEIGHT]);
+        assert_eq!(
+            display.get_content(),
+            &[[false; Display::WIDTH]; Display::HEIGHT]
+        );
     }
 
     #[test]
@@ -109,11 +123,17 @@ mod tests {
 
         assert_eq!(
             display.set_pixel(Display::HEIGHT, 0, true),
-            Err(Chip8Error::DisplayOutOfBounds { row: Display::HEIGHT, col: 0 })
+            Err(Chip8Error::DisplayOutOfBounds {
+                row: Display::HEIGHT,
+                col: 0
+            })
         );
         assert_eq!(
             display.set_pixel(0, Display::WIDTH, true),
-            Err(Chip8Error::DisplayOutOfBounds { row: 0, col: Display::WIDTH })
+            Err(Chip8Error::DisplayOutOfBounds {
+                row: 0,
+                col: Display::WIDTH
+            })
         );
     }
 
@@ -121,11 +141,16 @@ mod tests {
     fn test_clear() {
         let mut display = Display::new();
         display.set_pixel(0, 0, true).unwrap();
-        display.set_pixel(Display::HEIGHT - 1, Display::WIDTH - 1, true).unwrap();
+        display
+            .set_pixel(Display::HEIGHT - 1, Display::WIDTH - 1, true)
+            .unwrap();
 
         display.clear();
 
-        assert_eq!(display.get_content(), &[[false; Display::WIDTH]; Display::HEIGHT]);
+        assert_eq!(
+            display.get_content(),
+            &[[false; Display::WIDTH]; Display::HEIGHT]
+        );
     }
 
     #[test]
@@ -157,7 +182,11 @@ mod tests {
         let mut display = Display::new();
 
         assert_eq!(
-            display.draw_sprite(Display::WIDTH - 2, Display::HEIGHT - 1, &[0b1111_1111, 0b1111_1111]),
+            display.draw_sprite(
+                Display::WIDTH - 2,
+                Display::HEIGHT - 1,
+                &[0b1111_1111, 0b1111_1111]
+            ),
             Ok(false)
         );
 
@@ -172,11 +201,17 @@ mod tests {
 
         assert_eq!(
             display.draw_sprite(Display::WIDTH, 0, &[0]),
-            Err(Chip8Error::DisplayOutOfBounds { row: 0, col: Display::WIDTH })
+            Err(Chip8Error::DisplayOutOfBounds {
+                row: 0,
+                col: Display::WIDTH
+            })
         );
         assert_eq!(
             display.draw_sprite(0, Display::HEIGHT, &[0]),
-            Err(Chip8Error::DisplayOutOfBounds { row: Display::HEIGHT, col: 0 })
+            Err(Chip8Error::DisplayOutOfBounds {
+                row: Display::HEIGHT,
+                col: 0
+            })
         );
     }
 

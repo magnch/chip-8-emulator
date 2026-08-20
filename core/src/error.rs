@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Errors returned by the CHIP-8 core.
-pub enum Chip8Error { 
+pub enum Chip8Error {
     /// The opcode is not supported.
     UnknownOpcode(u16),
     /// A subroutine call exceeded the stack capacity.
@@ -10,13 +10,13 @@ pub enum Chip8Error {
     /// A return was attempted with an empty stack.
     StackUnderflow,
     /// The ROM is larger than the available program memory.
-    RomTooLarge{size: usize, max_size: usize},
+    RomTooLarge { size: usize, max_size: usize },
     /// An address was outside the 4 KiB memory space.
-    MemoryOutOfBounds{address: usize},
+    MemoryOutOfBounds { address: usize },
     /// A display coordinate was outside the framebuffer.
-    DisplayOutOfBounds{row: usize, col: usize},
+    DisplayOutOfBounds { row: usize, col: usize },
     /// A keypad value was outside the 16-key range.
-    KeypadOutOfBounds{key: usize},
+    KeypadOutOfBounds { key: usize },
 }
 
 impl fmt::Display for Chip8Error {

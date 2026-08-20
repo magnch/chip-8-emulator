@@ -30,7 +30,6 @@ pub(crate) fn sub_with_borrow(lhs: u8, rhs: u8) -> (u8, u8) {
     (result, !overflow as u8)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -52,7 +51,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_with_carry () {
+    fn test_add_with_carry() {
         assert_eq!(add_with_carry(255, 2), (1, 1));
         assert_eq!(add_with_carry(0, 1), (1, 0));
     }
