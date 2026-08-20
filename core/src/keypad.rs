@@ -57,21 +57,57 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_keypad() {
+    fn test_new_keypad_has_no_pressed_keys() {
+        let keypad = Keypad::new();
+
+        for key in 0..Keypad::NUM_KEYS {
+            assert_eq!(keypad.is_pressed(key), Ok(false));
+        }
+        assert_eq!(keypad.is_pressed_any(), (0xFF, false));
+    }
+
+    #[test]
+    fn test_press_and_release_each_valid_key() {
         let mut keypad = Keypad::new();
 
-        for i in 0..Keypad::NUM_KEYS {
-            assert!(!keypad.out_of_bounds(i));
-            assert!(!keypad.is_pressed(i).expect(""));
-            assert!(!keypad.press_key(i).is_err());
-            assert!(keypad.is_pressed(i).expect(""));
-            assert!(!keypad.release_key(i).is_err());
-            assert!(!keypad.is_pressed(i).expect(""));
+        for key in 0..Keypad::NUM_KEYS {
+            assert_eq!(keypad.press_key(key), Ok(()));
+            assert_eq!(keypad.is_pressed(key), Ok(true));
+            assert_eq!(keypad.release_key(key), Ok(()));
+            assert_eq!(keypad.is_pressed(key), Ok(false));
         }
-        assert!(!keypad.is_pressed_any().1);
-        assert!(keypad.out_of_bounds(16));
-        assert!(keypad.press_key(16).is_err());
-        assert!(!keypad.press_key(0xA).is_err());
+    }
+
+    #[test]
+    fn test_invalid_key_returns_error() {
+        let mut keypad = Keypad::new();
+        let invalid_key = Keypad::NUM_KEYS;
+        let expected_error = Chip8Error::KeypadOutOfBounds { key: invalid_key };
+
+        assert_eq!(keypad.is_pressed(invalid_key), Err(expected_error));
+        assert_eq!(keypad.press_key(invalid_key), Err(expected_error));
+        assert_eq!(keypad.release_key(invalid_key), Err(expected_error));
+    }
+
+    #[test]
+    fn test_is_pressed_any_returns_lowest_pressed_key() {
+        let mut keypad = Keypad::new();
+
+        keypad.press_key(0xA).unwrap();
+        keypad.press_key(0x3).unwrap();
+
+        assert_eq!(keypad.is_pressed_any(), (0x3, true));
+
+        keypad.release_key(0x3).unwrap();
         assert_eq!(keypad.is_pressed_any(), (0xA, true));
+    }
+
+    #[test]
+    fn test_out_of_bounds() {
+        let keypad = Keypad::new();
+
+        assert!(!keypad.out_of_bounds(0));
+        assert!(!keypad.out_of_bounds(Keypad::NUM_KEYS - 1));
+        assert!(keypad.out_of_bounds(Keypad::NUM_KEYS));
     }
 }
