@@ -17,7 +17,7 @@ pub fn main() {
 
     // Chip-8
     let mut chip8 = Chip8::new(); 
-    let rom = std::fs::read("roms/tests/7-beep.ch8").expect("failed to read ROM");
+    let rom = std::fs::read("roms/games/snake.ch8").expect("failed to read ROM");
     chip8.load_rom(rom.as_slice()).expect("failed to load ROM");
 
     // Set up GUI, sound and input
