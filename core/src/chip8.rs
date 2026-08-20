@@ -556,4 +556,247 @@ mod tests {
         assert_eq!(chip8.registers[0], 0x12);
         assert_eq!(chip8.registers[1], 0x34);
     }
+
+    mod execution_tests {
+        use super::*;
+
+        mod control_flow {
+            use super::*;
+
+            #[test]
+            fn test_jmp_sets_program_counter() {
+                let mut chip8 = Chip8::new();
+
+                chip8.execute(Instruction::Jmp(0x345)).unwrap();
+
+                assert_eq!(chip8.pc, 0x345);
+            }
+
+            #[test]
+            fn test_skip_instructions() {
+                let mut chip8 = Chip8::new();
+                chip8.pc = 0x200;
+                chip8.registers[1] = 0x42;
+                chip8.registers[2] = 0x42;
+
+                chip8.execute(Instruction::SkeqConst(1, 0x42)).unwrap();
+                assert_eq!(chip8.pc, 0x202);
+                chip8.execute(Instruction::SkneConst(1, 0x42)).unwrap();
+                assert_eq!(chip8.pc, 0x202);
+                chip8.execute(Instruction::Skeq(1, 2)).unwrap();
+                assert_eq!(chip8.pc, 0x204);
+                chip8.execute(Instruction::Skne(1, 2)).unwrap();
+                assert_eq!(chip8.pc, 0x204);
+
+                chip8.registers[2] = 0x24;
+                chip8.execute(Instruction::SkneConst(1, 0x24)).unwrap();
+                assert_eq!(chip8.pc, 0x206);
+                chip8.execute(Instruction::Skne(1, 2)).unwrap();
+                assert_eq!(chip8.pc, 0x208);
+            }
+        }
+
+        mod register_operations {
+            use super::*;
+
+            #[test]
+            fn test_add_const_wraps() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0xFF;
+
+                chip8.execute(Instruction::AddConst(1, 1)).unwrap();
+
+                assert_eq!(chip8.registers[1], 0);
+            }
+
+            #[test]
+            fn test_register_bitwise_operations() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0b1010_1010;
+                chip8.registers[2] = 0b1100_0011;
+
+                chip8.execute(Instruction::Or(1, 2)).unwrap();
+                assert_eq!(chip8.registers[1], 0b1110_1011);
+                chip8.registers[1] = 0b1010_1010;
+                chip8.execute(Instruction::And(1, 2)).unwrap();
+                assert_eq!(chip8.registers[1], 0b1000_0010);
+                chip8.registers[1] = 0b1010_1010;
+                chip8.execute(Instruction::Xor(1, 2)).unwrap();
+                assert_eq!(chip8.registers[1], 0b0110_1001);
+            }
+
+            #[test]
+            fn test_move_and_reverse_subtract() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 3;
+                chip8.registers[2] = 8;
+
+                chip8.execute(Instruction::Mov(1, 2)).unwrap();
+                assert_eq!(chip8.registers[1], 8);
+                chip8.registers[1] = 3;
+                chip8.execute(Instruction::Rsb(1, 2)).unwrap();
+                assert_eq!(chip8.registers[1], 5);
+                assert_eq!(chip8.registers[0xF], 1);
+            }
+
+            #[test]
+            fn test_shift_right_sets_vf() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0b0000_0011;
+
+                chip8.execute(Instruction::Shr(1, 0)).unwrap();
+
+                assert_eq!(chip8.registers[1], 1);
+                assert_eq!(chip8.registers[0xF], 1);
+            }
+
+            #[test]
+            fn test_shift_left_sets_vf() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0b1000_0001;
+
+                chip8.execute(Instruction::Shl(1, 0)).unwrap();
+
+                assert_eq!(chip8.registers[1], 2);
+                assert_eq!(chip8.registers[0xF], 1);
+            }
+        }
+
+        mod index_and_memory {
+            use super::*;
+
+            #[test]
+            fn test_mvi_sets_index() {
+                let mut chip8 = Chip8::new();
+
+                chip8.execute(Instruction::Mvi(0xABC)).unwrap();
+
+                assert_eq!(chip8.index, 0xABC);
+            }
+
+            #[test]
+            fn test_adi_adds_register_to_index() {
+                let mut chip8 = Chip8::new();
+                chip8.index = 0x300;
+                chip8.registers[1] = 0x24;
+
+                chip8.execute(Instruction::Adi(1)).unwrap();
+
+                assert_eq!(chip8.index, 0x324);
+            }
+
+            #[test]
+            fn test_font_sets_character_address() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0x0B;
+
+                chip8.execute(Instruction::Font(1)).unwrap();
+
+                assert_eq!(chip8.index, Memory::FONT_START_ADDR + 0x0B * Memory::FONT_CHAR_SIZE);
+            }
+
+            #[test]
+            fn test_adi_wraps_index_to_twelve_bits() {
+                let mut chip8 = Chip8::new();
+                chip8.index = 0xFFF;
+                chip8.registers[1] = 2;
+
+                chip8.execute(Instruction::Adi(1)).unwrap();
+
+                assert_eq!(chip8.index, 1);
+            }
+        }
+
+        mod keypad_and_timers {
+            use super::*;
+
+            #[test]
+            fn test_skip_if_key_pressed() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0xA;
+                chip8.key_down(0xA).unwrap();
+                chip8.pc = 0x200;
+
+                chip8.execute(Instruction::Skpr(1)).unwrap();
+
+                assert_eq!(chip8.pc, 0x202);
+            }
+
+            #[test]
+            fn test_skip_if_key_not_pressed() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0xA;
+                chip8.pc = 0x200;
+
+                chip8.execute(Instruction::Skup(1)).unwrap();
+
+                assert_eq!(chip8.pc, 0x202);
+            }
+
+            #[test]
+            fn test_key_waits_for_key_and_stores_key() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 0;
+                chip8.pc = 0x202;
+                chip8.key_down(0xC).unwrap();
+
+                chip8.execute(Instruction::Key(1)).unwrap();
+
+                assert_eq!(chip8.registers[1], 0xC);
+                assert_eq!(chip8.pc, 0x202);
+            }
+
+            #[test]
+            fn test_key_repeats_when_no_key_is_pressed() {
+                let mut chip8 = Chip8::new();
+                chip8.pc = 0x202;
+
+                chip8.execute(Instruction::Key(1)).unwrap();
+
+                assert_eq!(chip8.pc, 0x200);
+            }
+
+            #[test]
+            fn test_delay_and_sound_timer_instructions() {
+                let mut chip8 = Chip8::new();
+                chip8.registers[1] = 7;
+
+                chip8.execute(Instruction::Sdelay(1)).unwrap();
+                assert_eq!(chip8.delay_timer, 7);
+                chip8.execute(Instruction::Ssound(1)).unwrap();
+                assert_eq!(chip8.sound_timer, 7);
+                chip8.delay_timer = 3;
+                chip8.execute(Instruction::Gdelay(1)).unwrap();
+                assert_eq!(chip8.registers[1], 3);
+            }
+        }
+
+        mod system_and_random {
+            use super::*;
+
+            #[test]
+            fn test_low_high_and_xfont_are_no_ops() {
+                let mut chip8 = Chip8::new();
+                chip8.pc = 0x200;
+                chip8.index = 0x345;
+
+                chip8.execute(Instruction::Low).unwrap();
+                chip8.execute(Instruction::High).unwrap();
+                chip8.execute(Instruction::Xfont(1)).unwrap();
+
+                assert_eq!(chip8.pc, 0x200);
+                assert_eq!(chip8.index, 0x345);
+            }
+
+            #[test]
+            fn test_rand_masks_result() {
+                let mut chip8 = Chip8::new();
+
+                for _ in 0..100 {
+                    chip8.execute(Instruction::Rand(1, 0x0F)).unwrap();
+                    assert_eq!(chip8.registers[1] & 0xF0, 0);
+                }
+            }
+        }
+    }
 }
