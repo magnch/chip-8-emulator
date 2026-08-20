@@ -7,7 +7,7 @@ use sdl2::video::Window;
 use chip8_core::display::Display;
 
 pub enum Mode {
-    
+    Standard,
     Debugger,
 }
 
@@ -67,11 +67,5 @@ impl Renderer {
             self.scale as u32,
         );
         self.canvas.fill_rect(pixel).unwrap();
-    }
-}
-      );
-        self.canvas.fill_rect(pixel).unwrap();
-    }
-}       self.canvas.fill_rect(pixel).unwrap();
     }
 }
