@@ -350,3 +350,210 @@ impl Chip8 {
         Ok(())
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn load_opcode(chip8: &mut Chip8, opcode: u16) {
+        chip8.load_rom(&[(opcode >> 8) as u8, opcode as u8]).unwrap();
+    }
+
+    #[test]
+    fn test_new_initializes_cpu() {
+        let chip8 = Chip8::new();
+        let state = chip8.get_state();
+
+        assert_eq!(state.registers, [0; Chip8::NUM_REGS]);
+        assert_eq!(state.stack, [0; Chip8::STACK_SIZE]);
+        assert_eq!(state.sp, 0);
+        assert_eq!(state.pc, 0);
+        assert_eq!(state.index, 0);
+        assert_eq!(state.delay_timer, 0);
+        assert_eq!(state.sound_timer, 0);
+    }
+
+    #[test]
+    fn test_load_rom_sets_program_counter() {
+        let mut chip8 = Chip8::new();
+
+        chip8.load_rom(&[0x60, 0x2A]).unwrap();
+
+        assert_eq!(chip8.pc, Memory::ROM_START_ADDR);
+        assert_eq!(chip8.ram.read(Memory::ROM_START_ADDR), Ok(0x60));
+        assert_eq!(chip8.ram.read(Memory::ROM_START_ADDR + 1), Ok(0x2A));
+    }
+
+    #[test]
+    fn test_load_rom_rejects_oversized_rom() {
+        let mut chip8 = Chip8::new();
+        let max_size = 0x1000 - Memory::ROM_START_ADDR;
+        let rom = vec![0xFF; max_size + 1];
+
+        assert_eq!(
+            chip8.load_rom(&rom),
+            Err(Chip8Error::RomTooLarge {
+                size: rom.len(),
+                max_size,
+            })
+        );
+    }
+
+    #[test]
+    fn test_step_executes_instruction_and_advances_pc() {
+        let mut chip8 = Chip8::new();
+        load_opcode(&mut chip8, 0x612A);
+
+        chip8.step().unwrap();
+
+        assert_eq!(chip8.registers[1], 0x2A);
+        assert_eq!(chip8.pc, Memory::ROM_START_ADDR + 2);
+    }
+
+    #[test]
+    fn test_step_returns_error_for_unknown_opcode() {
+        let mut chip8 = Chip8::new();
+        load_opcode(&mut chip8, 0x0000);
+
+        assert_eq!(chip8.step(), Err(Chip8Error::UnknownOpcode(0x0000)));
+    }
+
+    #[test]
+    fn test_tick_timers_decrements_without_underflow() {
+        let mut chip8 = Chip8::new();
+        chip8.delay_timer = 2;
+        chip8.sound_timer = 1;
+
+        chip8.tick_timers();
+        assert_eq!(chip8.delay_timer, 1);
+        assert_eq!(chip8.sound_timer, 0);
+        assert!(!chip8.is_beeping());
+
+        chip8.tick_timers();
+        assert_eq!(chip8.delay_timer, 0);
+        assert_eq!(chip8.sound_timer, 0);
+    }
+
+    #[test]
+    fn test_is_beeping_when_sound_timer_is_nonzero() {
+        let mut chip8 = Chip8::new();
+        chip8.sound_timer = 1;
+
+        assert!(chip8.is_beeping());
+    }
+
+    #[test]
+    fn test_jsr_and_rts_use_stack() {
+        let mut chip8 = Chip8::new();
+        chip8.pc = Memory::ROM_START_ADDR + 2;
+
+        chip8.execute(Instruction::Jsr(0x300)).unwrap();
+        assert_eq!(chip8.pc, 0x300);
+        assert_eq!(chip8.sp, 1);
+        assert_eq!(chip8.stack[0], (Memory::ROM_START_ADDR + 2) as u16);
+
+        chip8.execute(Instruction::Rts).unwrap();
+        assert_eq!(chip8.pc, Memory::ROM_START_ADDR + 2);
+        assert_eq!(chip8.sp, 0);
+    }
+
+    #[test]
+    fn test_stack_overflow_and_underflow() {
+        let mut chip8 = Chip8::new();
+
+        assert_eq!(chip8.pop(), Err(Chip8Error::StackUnderflow));
+        for value in 0..Chip8::STACK_SIZE {
+            chip8.push(value as u16).unwrap();
+        }
+        assert_eq!(chip8.push(Chip8::STACK_SIZE as u16), Err(Chip8Error::StackOverflow));
+    }
+
+    #[test]
+    fn test_add_sets_carry_flag() {
+        let mut chip8 = Chip8::new();
+        chip8.registers[1] = 250;
+        chip8.registers[2] = 10;
+
+        chip8.execute(Instruction::Add(1, 2)).unwrap();
+
+        assert_eq!(chip8.registers[1], 4);
+        assert_eq!(chip8.registers[0xF], 1);
+    }
+
+    #[test]
+    fn test_sub_sets_no_borrow_flag() {
+        let mut chip8 = Chip8::new();
+        chip8.registers[1] = 3;
+        chip8.registers[2] = 5;
+
+        chip8.execute(Instruction::Sub(1, 2)).unwrap();
+
+        assert_eq!(chip8.registers[1], 254);
+        assert_eq!(chip8.registers[0xF], 0);
+    }
+
+    #[test]
+    fn test_cls_clears_display() {
+        let mut chip8 = Chip8::new();
+        chip8.display.set_pixel(2, 3, true).unwrap();
+
+        chip8.execute(Instruction::Cls).unwrap();
+
+        assert!(!chip8.display.get_content()[2][3]);
+    }
+
+    #[test]
+    fn test_sprite_sets_collision_flag() {
+        let mut chip8 = Chip8::new();
+        chip8.index = 0x300;
+        chip8.ram.write(0x300, 0b1000_0000).unwrap();
+        chip8.registers[1] = 2;
+        chip8.registers[2] = 3;
+
+        chip8.execute(Instruction::Sprite(1, 2, 1)).unwrap();
+        assert_eq!(chip8.registers[0xF], 0);
+
+        chip8.execute(Instruction::Sprite(1, 2, 1)).unwrap();
+        assert_eq!(chip8.registers[0xF], 1);
+    }
+
+    #[test]
+    fn test_key_down_and_key_up() {
+        let mut chip8 = Chip8::new();
+
+        chip8.key_down(0xA).unwrap();
+        assert_eq!(chip8.keypad.is_pressed(0xA), Ok(true));
+
+        chip8.key_up(0xA).unwrap();
+        assert_eq!(chip8.keypad.is_pressed(0xA), Ok(false));
+        assert_eq!(chip8.key_down(0x10), Err(Chip8Error::KeypadOutOfBounds { key: 0x10 }));
+    }
+
+    #[test]
+    fn test_bcd_writes_decimal_digits() {
+        let mut chip8 = Chip8::new();
+        chip8.registers[1] = 231;
+        chip8.index = 0x300;
+
+        chip8.execute(Instruction::Bcd(1)).unwrap();
+
+        assert_eq!(chip8.ram.read_slice(0x300, 3).unwrap(), &[2, 3, 1]);
+    }
+
+    #[test]
+    fn test_store_and_load_registers() {
+        let mut chip8 = Chip8::new();
+        chip8.index = 0x300;
+        chip8.registers[0] = 0x12;
+        chip8.registers[1] = 0x34;
+
+        chip8.execute(Instruction::Str(1)).unwrap();
+        chip8.registers[0] = 0;
+        chip8.registers[1] = 0;
+        chip8.execute(Instruction::Ldr(1)).unwrap();
+
+        assert_eq!(chip8.registers[0], 0x12);
+        assert_eq!(chip8.registers[1], 0x34);
+    }
+}
