@@ -77,7 +77,7 @@ impl Memory {
         let rom_end_addr = Self::ROM_START_ADDR + rom.len();
         let max_size = Self::MEMORY_SIZE - Self::ROM_START_ADDR;
 
-        if self.out_of_bounds(rom_end_addr) {
+        if self.out_of_bounds(rom_end_addr - 1) {
             Err(Chip8Error::RomTooLarge {
                 size: (rom.len()),
                 max_size: (max_size),
