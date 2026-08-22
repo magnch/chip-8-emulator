@@ -294,16 +294,23 @@ impl Chip8 {
     fn execute_sprite(&mut self, x: usize, y: usize, n: u8) -> Result<(), Chip8Error> {
         let x_coord = self.registers[x] as usize;
         let y_coord = self.registers[y] as usize;
-        // Wrap start coordinate, but not rest of sprite
+        
+        // Wrap start coordinates, but not rest of sprite
         let x_coord = x_coord % Display::WIDTH;
         let y_coord = y_coord % Display::HEIGHT;
 
         self.set_vf(0);
         let sprite = self.ram.read_slice(self.index, n as usize)?;
-        let collision = self.display.draw_sprite(x_coord, y_coord, sprite)?;
+        let collision = self.display.draw_sprite(
+            x_coord,
+            y_coord,
+            sprite,
+            self.config.sprites_wrap_at_edge
+        )?;
         if collision {
             self.set_vf(1);
         }
+
         Ok(())
     }
     /// Execute Key instruction
