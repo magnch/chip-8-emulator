@@ -1,32 +1,41 @@
-use std::time::{Duration, Instant};
+use std::sync::mpsc::TryRecvError;
+use std::time::Duration;
 
+use chip8_core::display::Display;
 use eframe::egui;
 use egui::{Color32, Rect, Vec2};
 
-use chip8_core::display::Display;
-
-use crate::{audio::AudioPlayer, emulator::Emulator};
+use crate::audio::AudioPlayer;
+use crate::runtime::{self, EmuCommand, EmuSnapshot, EmulatorRuntime};
 
 pub struct Chip8App {
-    pub emulator: Emulator,
-    pub audio_player: AudioPlayer,
-    pub error: Option<String>,
-    last_update: Instant,
+    runtime: EmulatorRuntime,
+    snapshot: EmuSnapshot,
+    audio_player: AudioPlayer,
+    previous_keys: [bool; 16],
+    error: Option<String>,
 }
 
 impl Chip8App {
-    pub fn new(cpu_cycles_per_second: u32) -> Self {
-        Self {
-            emulator: Emulator::new(cpu_cycles_per_second),
-            audio_player: AudioPlayer::default(),
+    pub fn new(runtime: EmulatorRuntime) -> Self {
+        let initial_snapshot = EmuSnapshot {
+            display_buffer: [[false; runtime::DISPLAY_WIDTH]; runtime::DISPLAY_HEIGHT],
+            beeping: false,
             error: None,
-            last_update: Instant::now(),
+        };
+
+        Self {
+            runtime,
+            snapshot: initial_snapshot,
+            audio_player: AudioPlayer::default(),
+            previous_keys: [false; runtime::NUM_KEYS],
+            error: None,
         }
     }
 
     fn draw_display(&self, ui: &mut egui::Ui) {
         let available = ui.available_size();
-        let scale = (available.x / Display::WIDTH as f32).min(available.y / Display::HEIGHT as f32);
+        let scale = (available.x / runtime::DISPLAY_WIDTH as f32).min(available.y / runtime::DISPLAY_HEIGHT as f32);
 
         let display_size = Vec2::new(
             Display::WIDTH as f32 * scale,
@@ -40,7 +49,7 @@ impl Chip8App {
 
         for y in 0..Display::HEIGHT {
             for x in 0..Display::WIDTH {
-                if self.emulator.display().get_content()[y][x] {
+                if self.snapshot.display_buffer[y][x] {
                     let top_left = origin + Vec2::new(x as f32 * scale, y as f32 * scale);
                     let pixel = Rect::from_min_size(top_left, Vec2::splat(scale));
                     painter.rect_filled(pixel, 0.0, Color32::WHITE);
@@ -48,36 +57,50 @@ impl Chip8App {
             }
         }
     }
-}
 
-impl eframe::App for Chip8App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Timing
-        let now = Instant::now();
-        let elapsed = (now - self.last_update).min(Duration::from_millis(100));
-        self.last_update = now;
+    fn send_input_edges(&mut self, current_keys: [bool; 16]) {
+        for key in 0..16 {
+            let was_down = self.previous_keys[key];
+            let is_down = current_keys[key];
 
-        // Run emulator
-        if let Err(error) = self.emulator.update(elapsed) {
-            self.error = Some(error.to_string());
-        }
-
-        // Handle input
-        for (key, pressed) in keyboard_state(ctx).into_iter().enumerate() {
-            let result = if pressed {
-                self.emulator.key_down(key)
-            } else {
-                self.emulator.key_up(key)
-            };
-            if let Err(error) = result {
-                self.error = Some(error.to_string());
+            if !was_down && is_down {
+                let _ = self.runtime.command_tx.send(EmuCommand::KeyDown(key));
+            } else if was_down && !is_down {
+                let _ = self.runtime.command_tx.send(EmuCommand::KeyUp(key));
             }
         }
 
-        // Handle sound
-        self.audio_player.set_playing(self.emulator.is_beeping());
+        self.previous_keys = current_keys;
+    }
 
-        // Handle GUI
+    fn drain_latest_snapshot(&mut self) {
+        loop {
+            match self.runtime.snapshot_rx.try_recv() {
+                Ok(snapshot) => {
+                    self.snapshot = snapshot;
+                }
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => {
+                    self.error = Some("emulator thread disconnected".to_string());
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
+impl eframe::App for Chip8App {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.send_input_edges(keyboard_state(ctx));
+        self.drain_latest_snapshot();
+
+        self.audio_player.set_playing(self.snapshot.beeping);
+
+        if let Some(err) = &self.snapshot.error {
+            self.error = Some(err.clone());
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {
                 self.draw_display(ui);

@@ -12,18 +12,18 @@ pub struct Emulator {
 
 impl Default for Emulator {
     fn default() -> Self {
-        Emulator::new(Self::DEFAULT_CPU_CYCLES_PER_SECOND)
+        Emulator::new(Self::DEFAULT_CPU_HZ)
     }
 }
 
 impl Emulator {
     const TIMER_HZ: u32 = 60;
-    const DEFAULT_CPU_CYCLES_PER_SECOND: u32 = 700;
+    const DEFAULT_CPU_HZ: u32 = 700;
 
-    pub fn new(cpu_cycles_per_second: u32) -> Self {
+    pub fn new(cpu_hz: u32) -> Self {
         Emulator {
             chip8: Chip8::default(),
-            cpu_step: Duration::from_secs_f64(1.0 / cpu_cycles_per_second as f64),
+            cpu_step: Duration::from_secs_f64(1.0 / cpu_hz as f64),
             timer_step: Duration::from_secs_f64(1.0 / Self::TIMER_HZ as f64),
             cpu_accumulator: Duration::ZERO,
             timer_accumulator: Duration::ZERO,
