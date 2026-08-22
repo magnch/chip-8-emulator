@@ -1,28 +1,34 @@
-use std::time::{Duration, Instant};
+use eframe::egui;
+
+use crate::gui::Chip8App;
 
 mod audio;
 mod emulator;
 mod gui;
-mod input;
 
-const CYCLES_PER_SECOND: u32 = 700;
+// Application constants
+const CPU_CYCLES_PER_SECOND: u32 = 700;
 const WINDOW_SCALE: usize = 18;
 
 pub fn main() {
-    // Start emulator instance
-    let mut emulator = emulator::Emulator::new(CYCLES_PER_SECOND);
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([64.0 * WINDOW_SCALE as f32, 32.0 * WINDOW_SCALE as f32]),
+        ..Default::default()
+    };
 
-    // Timing
-    let mut last_frame = Instant::now();
+    let rom = std::fs::read("roms/tests/7-beep.ch8").expect("load ROM");
 
-    'running: loop {
-        // Timing
-        let now = Instant::now();
-        let elapsed = (now - last_frame).min(Duration::from_millis(100)); // cap against stalls
-        last_frame = now;
-        
-        // Update emulator state
-        emulator.update(elapsed);
-    }
-
+    eframe::run_native(
+        "CHIP-8 Emulator",
+        options,
+        Box::new(|_creation_context| {
+            let mut app = Chip8App::new(CPU_CYCLES_PER_SECOND);
+            app.emulator
+                .load_rom(&rom)
+                .map_err(|error| Box::new(error) as Box<dyn std::error::Error + Send + Sync>)?;
+            Ok(Box::new(app))
+        }),
+    )
+    .expect("failed to start CHIP-8 window");
 }

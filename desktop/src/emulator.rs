@@ -1,7 +1,6 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use chip8_core::chip8::Chip8;
-use chip8_core::error::Chip8Error;
+use chip8_core::{chip8::Chip8, display::Display, error::Chip8Error};
 
 pub struct Emulator {
     chip8: Chip8,
@@ -35,13 +34,13 @@ impl Emulator {
         // Update accumulators
         self.cpu_accumulator += elapsed;
         self.timer_accumulator += elapsed;
-        // CPU cycle
-        if self.cpu_accumulator >= self.cpu_step {
+        // Run every elapsed CPU cycle, even when the GUI frame rate is lower.
+        while self.cpu_accumulator >= self.cpu_step {
             self.chip8.step()?;
             self.cpu_accumulator -= self.cpu_step;
         }
-        // Timer cycle
-        if self.timer_accumulator >= self.timer_step {
+
+        while self.timer_accumulator >= self.timer_step {
             self.chip8.tick_timers();
             self.timer_accumulator -= self.timer_step;
         }
@@ -56,7 +55,15 @@ impl Emulator {
         self.chip8.key_up(key)
     }
 
+    pub fn is_beeping(&self) -> bool {
+        self.chip8.is_beeping()
+    }
+
     pub fn display(&self) -> &Display {
         self.chip8.get_display()
+    }
+
+    pub fn load_rom(&mut self, rom: &[u8]) -> Result<(), Chip8Error> {
+        self.chip8.load_rom(rom)
     }
 }

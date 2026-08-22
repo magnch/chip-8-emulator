@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 chip8-core = { path = "../core" }
-sdl2 = {version = "0.38.0", features = ["bundled"]}
+eframe = "0.29"
+rodio = "0.22.2"
