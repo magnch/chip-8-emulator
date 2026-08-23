@@ -58,9 +58,9 @@ fn emulator_worker(
     let mut last_update = Instant::now();
     let mut last_error: Option<String> = None;
 
-    'run: loop {
+    loop {
         // Drain pending commands
-        'commands: loop {
+        loop {
             match command_rx.try_recv() {
                 Ok(EmuCommand::KeyDown(key)) => {
                     if let Err(err) = emulator.key_down(key) {
