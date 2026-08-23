@@ -72,6 +72,11 @@ impl Memory {
         }
     }
 
+    /// Fill memory with 0's
+    pub(crate) fn clear(&mut self) {
+        self.content.fill(0);
+    }
+
     /// Copy a ROM into program memory starting at `0x200`.
     pub(crate) fn load_rom(&mut self, rom: &[u8]) -> Result<(), Chip8Error> {
         let rom_end_addr = Self::ROM_START_ADDR + rom.len();
@@ -89,7 +94,7 @@ impl Memory {
     }
 
     /// Load the standard CHIP-8 hexadecimal font into memory.
-    fn load_font(&mut self) {
+    pub(crate) fn load_font(&mut self) {
         let font = crate::font::FONT_SET;
         self.content[Self::FONT_START_ADDR..=Self::FONT_END_ADDR].copy_from_slice(&font);
     }
