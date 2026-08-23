@@ -2,8 +2,8 @@ use crate::utils::extract_nibbles;
 
 #[derive(Debug, PartialEq)]
 /// Decoded CHIP-8 instruction and its operands.
-pub(crate) enum Instruction {
-    Unknown,
+pub enum Instruction {
+    Unknown(u16),
     Cls,                      //00E0
     Rts,                      //00EE
     Low,                      //00FE
@@ -43,8 +43,54 @@ pub(crate) enum Instruction {
     Ldr(usize),               //Fx65
 }
 
+/// Formatting for displaying instructions
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Instruction::Unknown(_opcode) => write!(f, "???"),
+            Instruction::Cls => write!(f, "CLS"),
+            Instruction::Rts => write!(f, "RTS"),
+            Instruction::Low => write!(f, "LOW"),
+            Instruction::High => write!(f, "HIGH"),
+            Instruction::Jmp(addr) => write!(f, "JMP {:#05X}", addr),
+            Instruction::Jsr(addr) => write!(f, "JSR {:#05X}", addr),
+            Instruction::SkeqConst(x, nn) => write!(f, "SKEQ V{:X}, {:#04X}", x, nn),
+            Instruction::SkneConst(x, nn) => write!(f, "SKNE V{:X}, {:#04X}", x, nn),
+            Instruction::Skeq(x, y) => write!(f, "SKEQ V{:X}, V{:X}", x, y),
+            Instruction::MovConst(x, nn) => write!(f, "MOV V{:X}, {:#04X}", x, nn),
+            Instruction::AddConst(x, nn) => write!(f, "ADD V{:X}, {:#04X}", x, nn),
+            Instruction::Mov(x, y) => write!(f, "MOV V{:X}, V{:X}", x, y),
+            Instruction::Or(x, y) => write!(f, "OR V{:X}, V{:X}", x, y),
+            Instruction::And(x, y) => write!(f, "AND V{:X}, V{:X}", x, y),
+            Instruction::Xor(x, y) => write!(f, "XOR V{:X}, V{:X}", x, y),
+            Instruction::Add(x, y) => write!(f, "ADD V{:X}, V{:X}", x, y),
+            Instruction::Sub(x, y) => write!(f, "SUB V{:X}, V{:X}", x, y),
+            Instruction::Shr(x, y) => write!(f, "SHR V{:X}, V{:X}", x, y),
+            Instruction::Rsb(x, y) => write!(f, "RSB V{:X}, V{:X}", x, y),
+            Instruction::Shl(x, y) => write!(f, "SHL V{:X}, V{:X}", x, y),
+            Instruction::Skne(x, y) => write!(f, "SKNE V{:X}, V{:X}", x, y),
+            Instruction::Mvi(addr) => write!(f, "MVI {:#05X}", addr),
+            Instruction::Jmi(addr) => write!(f, "JMI {:#05X}", addr),
+            Instruction::Rand(x, nn) => write!(f, "RAND V{:X}, {:#04X}", x, nn),
+            Instruction::Sprite(x, y, n) => write!(f, "SPRITE V{:X}, V{:X}, {:#X}", x, y, n),
+            Instruction::Skpr(x) => write!(f, "SKPR V{:X}", x),
+            Instruction::Skup(x) => write!(f, "SKUP V{:X}", x),
+            Instruction::Gdelay(x) => write!(f, "GDELAY V{:X}", x),
+            Instruction::Key(x) => write!(f, "KEY V{:X}", x),
+            Instruction::Sdelay(x) => write!(f, "SDELAY V{:X}", x),
+            Instruction::Ssound(x) => write!(f, "SSOUND V{:X}", x),
+            Instruction::Adi(x) => write!(f, "ADI V{:X}", x),
+            Instruction::Font(x) => write!(f, "FONT V{:X}", x),
+            Instruction::Xfont(x) => write!(f, "XFONT V{:X}", x),
+            Instruction::Bcd(x) => write!(f, "BCD V{:X}", x),
+            Instruction::Str(x) => write!(f, "STR V{:X}", x),
+            Instruction::Ldr(x) => write!(f, "LDR V{:X}", x),
+        }
+    }
+}
+
 /// Decode a 16-bit opcode into an instruction.
-pub(crate) fn decode(opcode: u16) -> Instruction {
+pub fn decode(opcode: u16) -> Instruction {
     let nibble = extract_nibbles(opcode, 3, 1);
     let x = extract_nibbles(opcode, 2, 1) as usize;
     let y = extract_nibbles(opcode, 1, 1) as usize;
@@ -59,7 +105,7 @@ pub(crate) fn decode(opcode: u16) -> Instruction {
             0xFE => Instruction::Low,
             0xFF => Instruction::High,
 
-            _ => Instruction::Unknown,
+            _ => Instruction::Unknown(opcode),
         },
         0x1 => Instruction::Jmp(nnn),
         0x2 => Instruction::Jsr(nnn),
@@ -79,7 +125,7 @@ pub(crate) fn decode(opcode: u16) -> Instruction {
             0x7 => Instruction::Rsb(x, y),
             0xE => Instruction::Shl(x, y),
 
-            _ => Instruction::Unknown,
+            _ => Instruction::Unknown(opcode),
         },
         0x9 => Instruction::Skne(x, y),
         0xA => Instruction::Mvi(nnn),
@@ -90,7 +136,7 @@ pub(crate) fn decode(opcode: u16) -> Instruction {
             0xA1 => Instruction::Skup(x),
             0x9E => Instruction::Skpr(x),
 
-            _ => Instruction::Unknown,
+            _ => Instruction::Unknown(opcode),
         },
         0xF => match nn {
             0x07 => Instruction::Gdelay(x),
@@ -104,10 +150,10 @@ pub(crate) fn decode(opcode: u16) -> Instruction {
             0x55 => Instruction::Str(x),
             0x65 => Instruction::Ldr(x),
 
-            _ => Instruction::Unknown,
+            _ => Instruction::Unknown(opcode),
         },
 
-        _ => Instruction::Unknown,
+        _ => Instruction::Unknown(opcode),
     }
 }
 
@@ -164,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_decode_invalid_opcode() {
-        assert_eq!(decode(0x0000), Instruction::Unknown);
-        assert_eq!(decode(0xFFFF), Instruction::Unknown);
+        assert_eq!(decode(0x0000), Instruction::Unknown(0x0000));
+        assert_eq!(decode(0xFFFF), Instruction::Unknown(0xFFFF));
     }
 }

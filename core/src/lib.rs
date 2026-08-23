@@ -33,13 +33,24 @@
 //! - [`error`] defines errors returned by the core.
 //! - [`memory`] provides the CHIP-8 memory abstraction.
 
-pub mod chip8;
-pub mod config;
-pub mod display;
-pub mod error;
-pub mod memory;
-
+mod chip8;
+mod config;
+mod display;
+mod error;
 mod font;
 mod keypad;
+mod memory;
 mod opcode;
 mod utils;
+
+pub use chip8::Chip8;
+#[cfg(feature = "debug-tools")]
+pub use chip8::CpuState;
+#[cfg(feature = "debug-tools")]
+pub use memory::Memory;
+#[cfg(feature = "debug-tools")]
+pub use opcode::{decode, Instruction};
+
+pub use config::Config;
+pub use display::Display;
+pub use error::Chip8Error;

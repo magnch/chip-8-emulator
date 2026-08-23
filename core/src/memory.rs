@@ -12,7 +12,7 @@ impl Default for Memory {
 }
 
 impl Memory {
-    const MEMORY_SIZE: usize = 4096;
+    pub const MEMORY_SIZE: usize = 4096;
     pub(crate) const FONT_START_ADDR: usize = 0x050;
     const FONT_END_ADDR: usize = 0x09F;
     pub(crate) const FONT_CHAR_SIZE: usize = 5;
@@ -105,10 +105,16 @@ impl Memory {
     }
 }
 
+#[cfg(feature = "debug-tools")]
+impl Memory {
+    pub(crate) fn get_content(&self) -> &[u8; Self::MEMORY_SIZE] {
+        &self.content
+    }
+}
+
 #[cfg(test)]
 
 mod tests {
-    use crate::memory;
 
     use super::*;
 

@@ -20,17 +20,10 @@ use crate::opcode;
 use crate::opcode::Instruction;
 use crate::utils;
 
-/// Snapshot of the emulator state for debugger integrations.
-#[derive(Debug, Clone, Copy)]
-pub struct CpuState {
-    registers: [u8; Chip8::NUM_REGS],
-    stack: [u16; Chip8::STACK_SIZE],
-    sp: usize,
-    pc: usize,
-    index: usize,
-    delay_timer: u8,
-    sound_timer: u8,
-}
+#[cfg(feature = "debug-tools")]
+mod debug;
+#[cfg(feature = "debug-tools")]
+pub use debug::CpuState;
 
 /// CHIP-8 virtual machine state and instruction executor.
 pub struct Chip8 {
@@ -119,24 +112,6 @@ impl Chip8 {
         &self.display
     }
 
-    /// Borrow the emulator memory.
-    pub fn get_memory(&self) -> &Memory {
-        &self.ram
-    }
-
-    /// Copy the current CPU state for inspection.
-    pub fn get_state(&self) -> CpuState {
-        CpuState {
-            registers: self.registers,
-            pc: self.pc,
-            index: self.index,
-            sp: self.sp,
-            stack: self.stack,
-            delay_timer: self.delay_timer,
-            sound_timer: self.sound_timer,
-        }
-    }
-
     /// Mark a CHIP-8 key as pressed.
     pub fn key_down(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.keypad.press_key(key)
@@ -171,7 +146,7 @@ impl Chip8 {
     /// Decode opcode into instruction
     fn decode(&self, opcode: u16) -> Result<Instruction, Chip8Error> {
         match opcode::decode(opcode) {
-            Instruction::Unknown => Err(Chip8Error::UnknownOpcode(opcode)),
+            Instruction::Unknown(uknown_opcode) => Err(Chip8Error::UnknownOpcode(uknown_opcode)),
             instruction => Ok(instruction),
         }
     }
@@ -225,7 +200,7 @@ impl Chip8 {
             Instruction::Str(x) => self.execute_str(x)?,
             Instruction::Ldr(x) => self.execute_ldr(x)?,
 
-            Instruction::Unknown => unreachable!("tried to execute Instruction::Unknown"),
+            Instruction::Unknown(opcode) => unreachable!("tried to execute Instruction::Unknown (opcode {opcode}"),
         }
         Ok(())
     }
