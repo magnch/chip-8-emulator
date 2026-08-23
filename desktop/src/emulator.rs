@@ -1,11 +1,6 @@
 use std::time::Duration;
 
-use chip8_core::{
-    chip8::Chip8,
-    display::Display,
-    error::Chip8Error,
-    config::Config,
-};
+use chip8_core::{chip8::Chip8, config::Config, display::Display, error::Chip8Error};
 
 pub struct Emulator {
     chip8: Chip8,
