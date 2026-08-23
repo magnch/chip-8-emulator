@@ -63,6 +63,10 @@ impl Emulator {
         self.chip8.get_display()
     }
 
+    pub fn display_take_dirty(&mut self) -> bool {
+        self.chip8.display_take_dirty()
+    }
+
     pub fn load_rom(&mut self, rom: &[u8]) -> Result<(), Chip8Error> {
         self.chip8.load_rom(rom)
     }

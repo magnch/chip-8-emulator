@@ -20,6 +20,7 @@ pub enum EmuCommand {
 #[derive(Clone, Debug)]
 pub struct EmuSnapshot {
     pub display_buffer: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+    pub display_dirty: bool,
     pub beeping: bool,
     pub error: Option<String>,
 }
@@ -101,6 +102,7 @@ fn emulator_worker(
         // Send snapshot to GUI handler
         let snapshot = EmuSnapshot {
             display_buffer: *emulator.display().get_content(),
+            display_dirty: emulator.display_take_dirty(),
             beeping: emulator.is_beeping(),
             error: last_error.clone(),
         };

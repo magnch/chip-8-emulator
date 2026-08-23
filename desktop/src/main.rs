@@ -19,7 +19,7 @@ pub fn main() {
     let runtime = runtime::spawn_emulator_runtime(CPU_HZ);
 
     // Load ROM
-    let rom = std::fs::read("roms/tests/7-beep.ch8").expect("load ROM");
+    let rom = std::fs::read("roms/games/snake.ch8").expect("load ROM");
     runtime
         .command_tx
         .send(runtime::EmuCommand::LoadRom((rom)))

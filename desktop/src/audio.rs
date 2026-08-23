@@ -20,7 +20,8 @@ impl AudioPlayer {
 
     pub fn new(buzzer_freq: f32, volume: f32) -> Self {
         let stream =
-            rodio::DeviceSinkBuilder::open_default_sink().expect("open default audio stream");
+            rodio::DeviceSinkBuilder::open_default_sink()
+                .expect("open default audio stream");
         let player = Player::connect_new(stream.mixer());
         let source = SquareWave::new(buzzer_freq).amplify(volume);
         player.append(source);

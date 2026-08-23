@@ -20,6 +20,7 @@ impl Chip8App {
     pub fn new(runtime: EmulatorRuntime) -> Self {
         let initial_snapshot = EmuSnapshot {
             display_buffer: [[false; runtime::DISPLAY_WIDTH]; runtime::DISPLAY_HEIGHT],
+            display_dirty: false,
             beeping: false,
             error: None,
         };
