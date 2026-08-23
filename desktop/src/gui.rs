@@ -4,7 +4,7 @@
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
-use chip8_core::{config::Config, display::Display};
+use chip8_core::{Config, CpuState, Display};
 use eframe::egui;
 use egui::{Color32, Rect, Vec2};
 
@@ -14,7 +14,7 @@ use crate::runtime::{self, EmuCommand, EmuSnapshot, EmulatorRuntime};
 /// The CHIP-8 desktop application's egui state.
 ///
 /// Owns the emulator thread handle and the last [`EmuSnapshot`] it sent;
-/// per-frame work is to forward input, drain snapshots, and paint.
+/// per-frame work is to forward input, drain self.snapshots, and paint.
 pub struct Chip8App {
     runtime: EmulatorRuntime,
     snapshot: EmuSnapshot,
@@ -28,6 +28,7 @@ pub struct Chip8App {
     /// The ROM currently loaded, kept so Settings > Reset can reload it.
     loaded_rom: Option<Vec<u8>>,
     paused: bool,
+    show_debugger: bool,
 }
 
 impl Chip8App {
@@ -38,6 +39,8 @@ impl Chip8App {
             display_dirty: false,
             beeping: false,
             error: None,
+            cpu: CpuState::default(),
+            memory: [0; 4096],
         };
 
         if let Some(rom) = &initial_rom {
@@ -53,6 +56,7 @@ impl Chip8App {
             error: None,
             loaded_rom: initial_rom,
             paused: false,
+            show_debugger: false,
         }
     }
 
@@ -157,9 +161,135 @@ impl Chip8App {
                                 .send(EmuCommand::SetConfig(self.config));
                         }
                     });
+                    if ui.checkbox(&mut self.show_debugger, "Show Debugger").changed() {}
                 });
             });
         });
+    }
+
+    fn draw_debugger(&mut self, ctx: &egui::Context) {
+        if !self.show_debugger {
+            return;
+        }
+        self.draw_control_panel(ctx);
+        self.draw_cpu_state_panel(ctx, &self.snapshot);
+        self.draw_instructions_panel(ctx, &self.snapshot);
+    }
+
+    fn draw_cpu_state_panel(&self, ctx: &egui::Context, snapshot: &EmuSnapshot) {
+        let window_width = ctx.screen_rect().width();
+        let panel_width = window_width * 0.18; // 18% of the window
+
+        egui::SidePanel::left("cpu_state_panel")
+            .exact_width(panel_width)
+            .show(ctx, |ui| {
+                ui.heading("Registers");
+                egui::Grid::new("registers_grid").show(ui, |ui| {
+                    for (i, reg) in self.snapshot.cpu.registers.iter().enumerate() {
+                        ui.label(format!("V{i:X}"));
+                        ui.label(format!("{reg:#04X}"));
+                        if i % 2 == 1 { ui.end_row(); }
+                    }
+                });
+
+                ui.separator();
+                ui.label(format!("PC: {:#05X}", snapshot.cpu.pc));
+                ui.label(format!("I:  {:#05X}", snapshot.cpu.index));
+                ui.label(format!("SP: {}", snapshot.cpu.sp));
+                ui.label(format!("DT: {}", snapshot.cpu.delay_timer));
+                ui.label(format!("ST: {}", snapshot.cpu.sound_timer));
+
+                ui.separator();
+                ui.heading("Stack");
+                for (i, addr) in snapshot.cpu.stack.iter().take(snapshot.cpu.sp as usize).enumerate() {
+                    ui.label(format!("{i}: {addr:#05X}"));
+                }
+            });
+    }
+
+    fn draw_instructions_panel(&self, ctx: &egui::Context, snapshot: &EmuSnapshot) {
+        let window_width = ctx.screen_rect().width();
+        let panel_width = window_width * 0.16; // 16% of the window
+
+        egui::SidePanel::right("instructions_panel")
+            .exact_width(panel_width)
+            .show(ctx, |ui| {
+                ui.heading("Instructions");
+
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    let pc = self.snapshot.cpu.pc;
+                    let start = pc.saturating_sub(10) & !1; // stay word-aligned, show some context above
+                    let mut addr = start;
+
+                    while addr < start + 40 && (addr as usize) < snapshot.memory.len() - 1 {
+                        let word = u16::from_be_bytes([
+                            snapshot.memory[addr as usize],
+                            snapshot.memory[addr as usize + 1],
+                        ]);
+
+                        let instr = chip8_core::decode(word);
+                        let text = if matches!(instr, chip8_core::Instruction::Unknown(_word)) {
+                            format!("??? {word:#06X}")
+                        } else {
+                            instr.to_string()
+                        };
+
+                        let line = format!("{addr:#05X}: {text}");
+
+                        if addr == pc {
+                            ui.colored_label(egui::Color32::YELLOW, format!("▶ {line}"));
+                        } else {
+                            ui.monospace(line);
+                        }
+
+                        addr += 2;
+                    }
+                });
+            });
+    }
+
+    fn draw_control_panel(&mut self, ctx: &egui::Context) {
+        let window_height = ctx.screen_rect().height();
+        let panel_height = window_height * 0.20;
+        let button_size = egui::Vec2::new(100.0, 40.0);
+
+        egui::TopBottomPanel::bottom("control_panel")
+            .exact_height(panel_height)
+            .show(ctx, |ui| {
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.add_space(panel_height * 0.5 - 20.0); // rough vertical centering
+                    ui.horizontal(|ui| {
+                        ui.add_space(ui.available_width() / 2.0 - (button_size.x * 3.0 + 16.0) / 2.0);
+
+                        let pause_label = if self.paused { "Resume" } else { "Pause" };
+                        if ui.add(egui::Button::new(pause_label).min_size(button_size)).clicked() {
+                            self.paused = !self.paused;
+                            let _ = self.runtime.command_tx.send(EmuCommand::Pause(self.paused));
+                        }
+
+                        if ui
+                            .add_enabled(self.paused, egui::Button::new("Step").min_size(button_size))
+                            .clicked()
+                        {
+                            let _ = self.runtime.command_tx.send(EmuCommand::StepOnce());
+                        }
+
+                        if ui
+                            .add_enabled(
+                                self.loaded_rom.is_some(),
+                                egui::Button::new("Reset").min_size(button_size),
+                            )
+                            .clicked()
+                        {
+                            if let Some(rom) = self.loaded_rom.clone() {
+                                let _ = self.runtime.command_tx.send(EmuCommand::Reset());
+                                let _ = self.runtime.command_tx.send(EmuCommand::LoadRom(rom));
+                                self.paused = false;
+                            }
+                        }
+                    });
+                });
+            });
     }
 
     /// Paint the current display buffer, scaled to fill the available space
@@ -208,7 +338,7 @@ impl Chip8App {
     }
 
     /// Replace [`Chip8App::snapshot`] with the most recent one available,
-    /// discarding any older, already-superseded snapshots.
+    /// discarding any older, already-superseded self.snapshots.
     fn drain_latest_snapshot(&mut self) {
         loop {
             match self.runtime.snapshot_rx.try_recv() {
@@ -239,6 +369,7 @@ impl eframe::App for Chip8App {
         }
 
         self.draw_menu_bar(ctx);
+        self.draw_debugger(ctx);
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {

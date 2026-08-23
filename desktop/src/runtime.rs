@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chip8_core::config::Config;
+use chip8_core::{Config, CpuState};
 
 use crate::emulator::Emulator;
 
@@ -38,6 +38,8 @@ pub enum EmuCommand {
     Reset(),
     /// Replace the interpreter's compatibility settings.
     SetConfig(Config),
+    /// Perform a single CPU step
+    StepOnce(),
 }
 
 /// A snapshot of emulator state produced once per worker loop iteration,
@@ -52,7 +54,12 @@ pub struct EmuSnapshot {
     pub beeping: bool,
     /// The most recent emulator error, if any, as a display string.
     pub error: Option<String>,
+    /// CPU state, used by the debugger
+    pub cpu: CpuState,
+    /// Memory content, used by the debugger
+    pub memory: [u8; 4096],
 }
+
 
 /// Handle to a running emulator thread: send [`EmuCommand`]s in, receive
 /// [`EmuSnapshot`]s out.
@@ -124,6 +131,9 @@ fn emulator_worker(
                 Ok(EmuCommand::SetConfig(config)) => {
                     emulator.set_config(config);
                 }
+                Ok(EmuCommand::StepOnce()) => {
+                    emulator.step();
+                }
 
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => return,
@@ -146,6 +156,8 @@ fn emulator_worker(
             display_dirty: emulator.display_take_dirty(),
             beeping: emulator.is_beeping(),
             error: last_error.clone(),
+            cpu: emulator.get_state(),
+            memory: *emulator.get_memory_content(),
         };
         match snapshot_tx.try_send(snapshot) {
             Ok(()) => {}

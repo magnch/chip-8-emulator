@@ -8,7 +8,7 @@
 
 use std::time::Duration;
 
-use chip8_core::{chip8::Chip8, config::Config, display::Display, error::Chip8Error};
+use chip8_core::{Chip8, Chip8Error, Config, CpuState, Display, Memory};
 
 /// A [`Chip8`] instance paired with independent CPU and timer clocks.
 pub struct Emulator {
@@ -71,6 +71,11 @@ impl Emulator {
         self.chip8.key_down(key)
     }
 
+    /// Perform a single CPU step
+    pub fn step(&mut self) {
+        let _ = self.chip8.step();
+    }
+
     /// Mark a CHIP-8 key as released.
     pub fn key_up(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.chip8.key_up(key)
@@ -81,7 +86,7 @@ impl Emulator {
         self.chip8.is_beeping()
     }
 
-    /// Borrow the current display buffer.
+    /// Borrow the current display object.
     pub fn display(&self) -> &Display {
         self.chip8.get_display()
     }
@@ -101,5 +106,16 @@ impl Emulator {
     /// next instruction.
     pub fn set_config(&mut self, config: Config) {
         self.chip8.config = config;
+    }
+}
+
+/// Debugger methods
+impl Emulator {
+    pub fn get_state(&self) -> CpuState {
+        self.chip8.get_state()
+    }
+
+    pub fn get_memory_content(&self) -> &[u8; Memory::MEMORY_SIZE] {
+        self.chip8.get_memory_content()
     }
 }
