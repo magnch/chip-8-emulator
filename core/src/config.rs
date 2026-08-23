@@ -1,4 +1,5 @@
 /// Compatibility options for CHIP-8 instruction variants.
+#[derive(Clone, Copy)]
 pub struct Config {
     /// Use `VY` as the shift source instead of `VX`.
     pub shift_uses_vy: bool,

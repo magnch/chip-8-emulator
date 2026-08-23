@@ -34,7 +34,7 @@ pub struct CpuState {
 
 /// CHIP-8 virtual machine state and instruction executor.
 pub struct Chip8 {
-    config: Config,
+    pub config: Config,
     ram: Memory,
     display: Display,
     keypad: Keypad,
