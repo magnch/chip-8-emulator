@@ -175,7 +175,7 @@ impl Chip8App {
     }
 
     fn send_input_edges(&mut self, current_keys: [bool; 16]) {
-        for key in 0..16 {
+        for (key, _) in current_keys.iter().enumerate() {
             let was_down = self.previous_keys[key];
             let is_down = current_keys[key];
 

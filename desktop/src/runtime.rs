@@ -101,11 +101,9 @@ fn emulator_worker(
         let elapsed = (now - last_update).min(Duration::from_millis(250));
         last_update = now;
 
-        if !paused {
-            if let Err(err) = emulator.update(elapsed) {
-                last_error = Some(err.to_string());
-                paused = true;
-            }
+        if !paused && let Err(err) = emulator.update(elapsed) {
+            last_error = Some(err.to_string());
+            paused = true;
         }
 
         // Send snapshot to GUI handler
