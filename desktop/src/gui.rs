@@ -1,7 +1,7 @@
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
-use chip8_core::display::Display;
+use chip8_core::{display::Display, config::Config};
 use eframe::egui;
 use egui::{Color32, Rect, Vec2};
 
@@ -11,6 +11,7 @@ use crate::runtime::{self, EmuCommand, EmuSnapshot, EmulatorRuntime};
 pub struct Chip8App {
     runtime: EmulatorRuntime,
     snapshot: EmuSnapshot,
+    config: Config,
     audio_player: AudioPlayer,
     previous_keys: [bool; 16],
     error: Option<String>,
@@ -34,6 +35,7 @@ impl Chip8App {
         Self {
             runtime,
             snapshot: initial_snapshot,
+            config: Config::default(),
             audio_player: AudioPlayer::default(),
             previous_keys: [false; runtime::NUM_KEYS],
             error: None,
@@ -88,6 +90,23 @@ impl Chip8App {
                             self.paused = false;
                         }
                     }
+                    ui.menu_button("Configuration", |ui|  {
+                        if ui.checkbox(&mut self.config.adi_flags_overflow, "Adi flags overflow").changed() {
+                            let _ = self.runtime.command_tx.send(EmuCommand::SetConfig(self.config));
+                        }
+                        if ui.checkbox(&mut self.config.jmi_uses_vx, "Jmi uses Vx register").changed() {
+                            let _ = self.runtime.command_tx.send(EmuCommand::SetConfig(self.config));
+                        }
+                        if ui.checkbox(&mut self.config.shift_uses_vy, "Shift uses Vy register").changed() {
+                            let _ = self.runtime.command_tx.send(EmuCommand::SetConfig(self.config));
+                        }
+                        if ui.checkbox(&mut self.config.sprites_wrap_at_edge, "Sprites wrap at edge of display").changed() {
+                            let _ = self.runtime.command_tx.send(EmuCommand::SetConfig(self.config));
+                        }
+                        if ui.checkbox(&mut self.config.str_ldr_increments_index, "Store and load increment index").changed() {
+                            let _ = self.runtime.command_tx.send(EmuCommand::SetConfig(self.config));
+                        }
+                    });
                 });
             });
         });

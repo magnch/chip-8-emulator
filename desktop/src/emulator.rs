@@ -1,6 +1,11 @@
 use std::time::Duration;
 
-use chip8_core::{chip8::Chip8, display::Display, error::Chip8Error};
+use chip8_core::{
+    chip8::Chip8,
+    display::Display,
+    error::Chip8Error,
+    config::Config,
+};
 
 pub struct Emulator {
     chip8: Chip8,
@@ -73,5 +78,9 @@ impl Emulator {
 
     pub fn load_rom(&mut self, rom: &[u8]) -> Result<(), Chip8Error> {
         self.chip8.load_rom(rom)
+    }
+
+    pub fn set_config(&mut self, config: Config) {
+        self.chip8.config = config;
     }
 }

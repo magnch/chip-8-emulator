@@ -4,6 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use chip8_core::config::Config;
+
 use crate::emulator::Emulator;
 
 pub const DISPLAY_WIDTH: usize = 64;
@@ -16,6 +18,7 @@ pub enum EmuCommand {
     LoadRom(Vec<u8>),
     Pause(bool),
     Reset(),
+    SetConfig(Config),
 }
 
 #[derive(Clone, Debug)]
@@ -83,6 +86,9 @@ fn emulator_worker(
                 }
                 Ok(EmuCommand::Reset()) => {
                     emulator.reset();
+                }
+                Ok(EmuCommand::SetConfig(config)) => {
+                    emulator.set_config(config);
                 }
 
                 Err(TryRecvError::Empty) => break,
