@@ -15,6 +15,7 @@ pub enum EmuCommand {
     KeyUp(usize),
     LoadRom(Vec<u8>),
     Pause(bool),
+    Reset(),
 }
 
 #[derive(Clone, Debug)]
@@ -80,6 +81,10 @@ fn emulator_worker(
                 Ok(EmuCommand::Pause(value)) => {
                     paused = value;
                 }
+                Ok(EmuCommand::Reset()) => {
+                    emulator.reset();
+                }
+
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => return,
             }

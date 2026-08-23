@@ -47,6 +47,10 @@ impl Emulator {
         Ok(())
     }
 
+    pub fn reset(&mut self) {
+        self.chip8.reset();
+    }
+
     pub fn key_down(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.chip8.key_down(key)
     }

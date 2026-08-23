@@ -14,10 +14,12 @@ pub struct Chip8App {
     audio_player: AudioPlayer,
     previous_keys: [bool; 16],
     error: Option<String>,
+    loaded_rom: Option<Vec<u8>>,
+    paused: bool,
 }
 
 impl Chip8App {
-    pub fn new(runtime: EmulatorRuntime) -> Self {
+    pub fn new(runtime: EmulatorRuntime, initial_rom: Option<Vec<u8>>) -> Self {
         let initial_snapshot = EmuSnapshot {
             display_buffer: [[false; runtime::DISPLAY_WIDTH]; runtime::DISPLAY_HEIGHT],
             display_dirty: false,
@@ -25,13 +27,70 @@ impl Chip8App {
             error: None,
         };
 
+        if let Some(rom) = &initial_rom {
+            let _ = runtime.command_tx.send(EmuCommand::LoadRom(rom.clone()));
+        }
+
         Self {
             runtime,
             snapshot: initial_snapshot,
             audio_player: AudioPlayer::default(),
             previous_keys: [false; runtime::NUM_KEYS],
             error: None,
+            loaded_rom: initial_rom,
+            paused: false,
         }
+    }
+
+    fn draw_menu_bar(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open ROM…").clicked() {
+                        ui.close_menu();
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("CHIP-8 ROM", &["ch8", "c8", "bin"])
+                            .pick_file()
+                        {
+                            match std::fs::read(&path) {
+                                Ok(bytes) => {
+                                    let _ = self.runtime.command_tx.send(EmuCommand::Reset());
+                                    let _ = self
+                                        .runtime
+                                        .command_tx
+                                        .send(EmuCommand::LoadRom(bytes.clone()));
+                                    self.loaded_rom = Some(bytes);
+                                    self.paused = false;
+                                    self.error = None;
+                                }
+                                Err(err) => self.error = Some(err.to_string()),
+                            }
+                        }
+                    }
+                    ui.separator();
+                    if ui.button("Exit").clicked() {
+                        ui.close_menu();
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
+                ui.menu_button("Settings", |ui| {
+                    if ui.checkbox(&mut self.paused, "Paused").changed() {
+                        let _ = self.runtime.command_tx.send(EmuCommand::Pause(self.paused));
+                    }
+                    if ui
+                        .add_enabled(self.loaded_rom.is_some(), egui::Button::new("Reset"))
+                        .clicked()
+                    {
+                        ui.close_menu();
+                        if let Some(rom) = self.loaded_rom.clone() {
+                            let _ = self.runtime.command_tx.send(EmuCommand::Reset());
+                            let _ = self.runtime.command_tx.send(EmuCommand::LoadRom(rom));
+                            self.paused = false;
+                        }
+                    }
+                });
+            });
+        });
     }
 
     fn draw_display(&self, ui: &mut egui::Ui) {
@@ -101,6 +160,8 @@ impl eframe::App for Chip8App {
         if let Some(err) = &self.snapshot.error {
             self.error = Some(err.clone());
         }
+
+        self.draw_menu_bar(ctx);
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.centered_and_justified(|ui| {
