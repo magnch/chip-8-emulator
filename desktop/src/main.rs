@@ -1,3 +1,9 @@
+//! Native CHIP-8 emulator frontend: an egui/eframe window around the
+//! `chip8-core` interpreter, with audio via `rodio`.
+//!
+//! Load a ROM from the running app's File > Open ROM… menu; no ROM is
+//! loaded on startup.
+
 use eframe::egui;
 
 mod audio;
@@ -9,6 +15,7 @@ mod runtime;
 const CPU_HZ: u32 = 700;
 const WINDOW_SCALE: usize = 18;
 
+/// Spawn the emulator thread and open the egui window.
 pub fn main() {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()

@@ -33,6 +33,7 @@ The frontend is responsible for loading the ROM, scheduling CPU steps and timer 
 | --- | --- |
 | `Chip8::new` | Create a reset emulator |
 | `Chip8::load_rom` | Copy a ROM into memory and set the program counter |
+| `Chip8::reset` | Clear CPU, memory, and display state back to a fresh boot |
 | `Chip8::step` | Execute one CPU instruction |
 | `Chip8::tick_timers` | Decrement the delay and sound timers |
 | `Chip8::get_display` | Read the current 64 x 32 display buffer |
@@ -66,4 +67,4 @@ The tests cover the main instruction families, memory, display, keypad, timers, 
 
 ## Current scope
 
-The core crate is designed to be driven by a frontend. It does not open windows, process operating-system input, or produce audio. Compatibility options are defined in `Config`; configuration injection and runtime selection are not yet part of the public `Chip8` API.
+The core crate is designed to be driven by a frontend. It does not open windows, process operating-system input, or produce audio. Compatibility options are defined in `Config` and exposed through the public `pub config: Config` field on `Chip8` — a frontend can read or replace it at any time, and the new settings take effect starting with the next instruction executed.

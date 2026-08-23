@@ -1,5 +1,6 @@
 use crate::error::Chip8Error;
 
+/// State of the 16-key CHIP-8 keypad.
 pub(crate) struct Keypad {
     keys: [bool; Self::NUM_KEYS],
 }

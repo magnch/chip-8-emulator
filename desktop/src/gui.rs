@@ -1,3 +1,6 @@
+//! The egui [`eframe::App`] that renders the CHIP-8 display, menu bar, and
+//! error banner, and forwards keyboard input to the emulator thread.
+
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
@@ -8,18 +11,27 @@ use egui::{Color32, Rect, Vec2};
 use crate::audio::AudioPlayer;
 use crate::runtime::{self, EmuCommand, EmuSnapshot, EmulatorRuntime};
 
+/// The CHIP-8 desktop application's egui state.
+///
+/// Owns the emulator thread handle and the last [`EmuSnapshot`] it sent;
+/// per-frame work is to forward input, drain snapshots, and paint.
 pub struct Chip8App {
     runtime: EmulatorRuntime,
     snapshot: EmuSnapshot,
+    /// The compatibility settings currently applied, as last pushed to the
+    /// emulator thread via [`EmuCommand::SetConfig`]. The GUI is the source
+    /// of truth for this value; the emulator thread never reports it back.
     config: Config,
     audio_player: AudioPlayer,
     previous_keys: [bool; 16],
     error: Option<String>,
+    /// The ROM currently loaded, kept so Settings > Reset can reload it.
     loaded_rom: Option<Vec<u8>>,
     paused: bool,
 }
 
 impl Chip8App {
+    /// Create the app and, if `initial_rom` is given, load it immediately.
     pub fn new(runtime: EmulatorRuntime, initial_rom: Option<Vec<u8>>) -> Self {
         let initial_snapshot = EmuSnapshot {
             display_buffer: [[false; runtime::DISPLAY_WIDTH]; runtime::DISPLAY_HEIGHT],
@@ -44,6 +56,8 @@ impl Chip8App {
         }
     }
 
+    /// Draw the File / Settings menu bar: loading ROMs, exiting, pausing,
+    /// resetting, and toggling compatibility [`Config`] flags live.
     fn draw_menu_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -148,6 +162,8 @@ impl Chip8App {
         });
     }
 
+    /// Paint the current display buffer, scaled to fill the available space
+    /// while preserving the CHIP-8's 64x32 aspect ratio.
     fn draw_display(&self, ui: &mut egui::Ui) {
         let available = ui.available_size();
         let scale = (available.x / runtime::DISPLAY_WIDTH as f32)
@@ -174,6 +190,8 @@ impl Chip8App {
         }
     }
 
+    /// Compare this frame's key states against the last frame's and send a
+    /// [`EmuCommand::KeyDown`]/[`EmuCommand::KeyUp`] for each key that changed.
     fn send_input_edges(&mut self, current_keys: [bool; 16]) {
         for (key, _) in current_keys.iter().enumerate() {
             let was_down = self.previous_keys[key];
@@ -189,6 +207,8 @@ impl Chip8App {
         self.previous_keys = current_keys;
     }
 
+    /// Replace [`Chip8App::snapshot`] with the most recent one available,
+    /// discarding any older, already-superseded snapshots.
     fn drain_latest_snapshot(&mut self) {
         loop {
             match self.runtime.snapshot_rx.try_recv() {
@@ -206,6 +226,8 @@ impl Chip8App {
 }
 
 impl eframe::App for Chip8App {
+    /// Run one egui frame: forward input, pull in the latest emulator
+    /// state, and paint the menu bar and display.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.send_input_edges(keyboard_state(ctx));
         self.drain_latest_snapshot();
@@ -232,6 +254,8 @@ impl eframe::App for Chip8App {
     }
 }
 
+/// Read the current down/up state of all 16 CHIP-8 keys from the keyboard.
+///
 /// Layout (physical position -> CHIP-8 key):
 ///   1 2 3 4        1 2 3 C
 ///   Q W E R   ->   4 5 6 D

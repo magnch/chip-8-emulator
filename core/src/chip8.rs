@@ -34,6 +34,9 @@ pub struct CpuState {
 
 /// CHIP-8 virtual machine state and instruction executor.
 pub struct Chip8 {
+    /// Compatibility settings for instruction variants. Public so a
+    /// frontend can read or replace it at any time; takes effect starting
+    /// with the next instruction executed.
     pub config: Config,
     ram: Memory,
     display: Display,
