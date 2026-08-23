@@ -34,7 +34,10 @@ pub struct CpuState {
 
 /// CHIP-8 virtual machine state and instruction executor.
 pub struct Chip8 {
-    config: Config,
+    /// Compatibility settings for instruction variants. Public so a
+    /// frontend can read or replace it at any time; takes effect starting
+    /// with the next instruction executed.
+    pub config: Config,
     ram: Memory,
     display: Display,
     keypad: Keypad,
@@ -75,31 +78,52 @@ impl Chip8 {
             sound_timer: 0,
         }
     }
+
     /// Load a ROM and reset the program counter to its start address.
     pub fn load_rom(&mut self, rom: &[u8]) -> Result<(), Chip8Error> {
         self.ram.load_rom(rom)?;
         self.pc = Memory::ROM_START_ADDR;
         Ok(())
     }
+
     /// Fetch, decode, and execute one instruction.
     pub fn step(&mut self) -> Result<(), Chip8Error> {
         let opcode = self.fetch()?;
         let instruction = self.decode(opcode)?;
         self.execute(instruction)
     }
+
     /// Decrement the delay and sound timers by one tick.
     pub fn tick_timers(&mut self) {
         self.delay_timer = self.delay_timer.saturating_sub(1);
         self.sound_timer = self.sound_timer.saturating_sub(1);
     }
+
+    /// Reset the state of the Chip-8
+    pub fn reset(&mut self) {
+        self.ram.clear();
+        self.display.clear();
+        self.registers.fill(0x00);
+        self.stack.fill(0x00);
+        self.sp = 0;
+        self.pc = 0;
+        self.index = 0;
+        self.delay_timer = 0;
+        self.sound_timer = 0;
+
+        self.ram.load_font();
+    }
+
     /// Borrow the current display buffer.
     pub fn get_display(&self) -> &Display {
         &self.display
     }
+
     /// Borrow the emulator memory.
     pub fn get_memory(&self) -> &Memory {
         &self.ram
     }
+
     /// Copy the current CPU state for inspection.
     pub fn get_state(&self) -> CpuState {
         CpuState {
@@ -112,18 +136,27 @@ impl Chip8 {
             sound_timer: self.sound_timer,
         }
     }
+
     /// Mark a CHIP-8 key as pressed.
     pub fn key_down(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.keypad.press_key(key)
     }
+
     /// Mark a CHIP-8 key as released.
     pub fn key_up(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.keypad.release_key(key)
     }
+
     /// Return whether the sound timer is active.
     pub fn is_beeping(&self) -> bool {
         self.sound_timer > 0
     }
+
+    /// Take dirty bit from display
+    pub fn display_take_dirty(&mut self) -> bool {
+        self.display.take_dirty()
+    }
+
     /// Fetch next opcode from memory
     fn fetch(&mut self) -> Result<u16, Chip8Error> {
         // Fetch opcode from PC
@@ -134,6 +167,7 @@ impl Chip8 {
         // Return 16-bit opcode
         Ok((high_byte << 8) | low_byte)
     }
+
     /// Decode opcode into instruction
     fn decode(&self, opcode: u16) -> Result<Instruction, Chip8Error> {
         match opcode::decode(opcode) {
@@ -141,6 +175,7 @@ impl Chip8 {
             instruction => Ok(instruction),
         }
     }
+
     /// Execute instruction
     fn execute(&mut self, instruction: Instruction) -> Result<(), Chip8Error> {
         match instruction {
@@ -194,10 +229,12 @@ impl Chip8 {
         }
         Ok(())
     }
+
     /// Set VF register to value
     fn set_vf(&mut self, value: u8) {
         self.registers[0xF] = value;
     }
+
     /// Push element to stack
     fn push(&mut self, value: u16) -> Result<(), Chip8Error> {
         if self.sp >= Self::STACK_SIZE {
@@ -207,6 +244,7 @@ impl Chip8 {
         self.sp += 1;
         Ok(())
     }
+
     /// Pop element from stack
     fn pop(&mut self) -> Result<u16, Chip8Error> {
         if self.sp == 0 {
@@ -225,36 +263,42 @@ impl Chip8 {
         self.pc = nnn;
         Ok(())
     }
+
     /// Skip next instruction if x equals y
     fn skip_if_eq(&mut self, x: u8, y: u8) {
         if x == y {
             self.pc += 2;
         }
     }
+
     /// Skip next instruction if x does not equal y
     fn skip_if_not_eq(&mut self, x: u8, y: u8) {
         if x != y {
             self.pc += 2;
         }
     }
+
     /// Execute Add instruction
     fn execute_add(&mut self, x: usize, y: usize) {
         let (result, carry) = utils::add_with_carry(self.registers[x], self.registers[y]);
         self.registers[x] = result;
         self.set_vf(carry);
     }
+
     /// Execute Sub instruction
     fn execute_sub(&mut self, x: usize, y: usize) {
         let (result, borrow) = utils::sub_with_borrow(self.registers[x], self.registers[y]);
         self.registers[x] = result;
         self.set_vf(borrow);
     }
+
     /// Execute Rsb instruction
     fn execute_rsb(&mut self, x: usize, y: usize) {
         let (result, borrow) = utils::sub_with_borrow(self.registers[y], self.registers[x]);
         self.registers[x] = result;
         self.set_vf(borrow);
     }
+
     /// Execute Shr instruction
     fn execute_shr(&mut self, x: usize, y: usize) {
         if self.config.shift_uses_vy {
@@ -265,6 +309,7 @@ impl Chip8 {
         self.registers[x] >>= 1;
         self.set_vf(carry);
     }
+
     /// Execute Shl instruction
     fn execute_shl(&mut self, x: usize, y: usize) {
         if self.config.shift_uses_vy {
@@ -275,6 +320,7 @@ impl Chip8 {
         self.registers[x] <<= 1;
         self.set_vf(carry);
     }
+
     /// Execute Jmi instruction
     fn execute_jmi(&mut self, nnn: usize) {
         let offset = if self.config.jmi_uses_vx {
@@ -285,27 +331,34 @@ impl Chip8 {
         };
         self.pc = nnn + offset;
     }
+
     /// Generate random number and load into register
     fn rand(&mut self, x: usize, nn: u8) {
         let rand_num: u8 = rand::random();
         self.registers[x] = rand_num & nn;
     }
+
     /// Execute Sprite instruction
     fn execute_sprite(&mut self, x: usize, y: usize, n: u8) -> Result<(), Chip8Error> {
         let x_coord = self.registers[x] as usize;
         let y_coord = self.registers[y] as usize;
-        // Wrap start coordinate, but not rest of sprite
+
+        // Wrap start coordinates, but not rest of sprite
         let x_coord = x_coord % Display::WIDTH;
         let y_coord = y_coord % Display::HEIGHT;
 
         self.set_vf(0);
         let sprite = self.ram.read_slice(self.index, n as usize)?;
-        let collision = self.display.draw_sprite(x_coord, y_coord, sprite)?;
+        let collision =
+            self.display
+                .draw_sprite(x_coord, y_coord, sprite, self.config.sprites_wrap_at_edge)?;
         if collision {
             self.set_vf(1);
         }
+
         Ok(())
     }
+
     /// Execute Key instruction
     fn execute_key(&mut self, x: usize) {
         let (key, pressed) = self.keypad.is_pressed_any();
@@ -315,6 +368,7 @@ impl Chip8 {
             self.pc -= 2; // Stay at same instruction
         }
     }
+
     /// Execute Adi instruction
     fn execute_adi(&mut self, x: usize) {
         let mut value = self.index + self.registers[x] as usize;
@@ -326,18 +380,21 @@ impl Chip8 {
         }
         self.index = value;
     }
+
     /// Execute Font instruction
     fn execute_font(&mut self, x: usize) {
         let hex_char: u8 = self.registers[x] & 0x0F;
         let address = Memory::FONT_START_ADDR + (hex_char as usize) * Memory::FONT_CHAR_SIZE;
         self.index = address;
     }
+
     /// Execute Bcd instruction
     fn execute_bcd(&mut self, x: usize) -> Result<(), Chip8Error> {
         let num = self.registers[x];
         let digits = &[num / 100, (num % 100) / 10, num % 10];
         self.ram.write_slice(self.index, digits, 3)
     }
+
     /// Execute Str instruction
     fn execute_str(&mut self, x: usize) -> Result<(), Chip8Error> {
         for i in 0..=x {
@@ -350,6 +407,7 @@ impl Chip8 {
         }
         Ok(())
     }
+
     /// Execute Ldr instruction
     fn execute_ldr(&mut self, x: usize) -> Result<(), Chip8Error> {
         for i in 0..=x {

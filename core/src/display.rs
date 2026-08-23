@@ -1,8 +1,9 @@
-use crate::error::Chip8Error;
+use crate::{error::Chip8Error, utils::extract_bit};
 
 /// A 64 x 32 monochrome CHIP-8 display buffer.
 pub struct Display {
     content: [[bool; Self::WIDTH]; Self::HEIGHT],
+    dirty: bool,
 }
 
 impl Default for Display {
@@ -20,6 +21,7 @@ impl Display {
     pub(crate) fn new() -> Self {
         Display {
             content: [[false; Self::WIDTH]; Self::HEIGHT],
+            dirty: false,
         }
     }
 
@@ -28,19 +30,8 @@ impl Display {
         &self.content
     }
 
-    /// Set one pixel without applying sprite XOR behavior.
-    pub(crate) fn set_pixel(
-        &mut self,
-        row: usize,
-        col: usize,
-        value: bool,
-    ) -> Result<(), Chip8Error> {
-        if self.out_of_bounds(row, col) {
-            Err(Chip8Error::DisplayOutOfBounds { row, col })
-        } else {
-            self.content[row][col] = value;
-            Ok(())
-        }
+    pub fn take_dirty(&mut self) -> bool {
+        std::mem::replace(&mut self.dirty, false)
     }
 
     /// Clear every pixel in the framebuffer.
@@ -58,6 +49,7 @@ impl Display {
         x_start: usize,
         y_start: usize,
         sprite: &[u8],
+        wrap: bool,
     ) -> Result<bool, Chip8Error> {
         if self.out_of_bounds(y_start, x_start) {
             return Err(Chip8Error::DisplayOutOfBounds {
@@ -69,16 +61,27 @@ impl Display {
         let mut collision = false;
         'row: for (row, &byte) in sprite.iter().enumerate() {
             'column: for bit in 0..8 {
-                let value = (byte >> (7 - bit)) & 1;
+                let value = extract_bit(byte, 7 - bit as u8);
+
                 if value == 1 {
-                    let x = x_start + bit;
+                    let mut x = x_start + bit;
                     if x >= Self::WIDTH {
-                        break 'column;
+                        if wrap {
+                            x -= Self::WIDTH;
+                        } else {
+                            break 'column;
+                        }
                     }
-                    let y = y_start + row;
+
+                    let mut y = y_start + row;
                     if y >= Self::HEIGHT {
-                        break 'row;
+                        if wrap {
+                            y -= Self::HEIGHT;
+                        } else {
+                            break 'row;
+                        }
                     }
+
                     match self.content[y][x] {
                         false => self.content[y][x] = true,
                         true => {
@@ -86,9 +89,11 @@ impl Display {
                             collision = true;
                         }
                     }
+                    self.dirty = true;
                 }
             }
         }
+
         Ok(collision)
     }
 
@@ -163,7 +168,7 @@ mod tests {
     fn test_draw_sprite() {
         let mut display = Display::new();
 
-        assert_eq!(display.draw_sprite(2, 3, &[0b1010_0001]), Ok(false));
+        assert_eq!(display.draw_sprite(2, 3, &[0b1010_0001], false), Ok(false));
 
         assert!(display.get_content()[3][2]);
         assert!(display.get_content()[3][4]);
@@ -177,7 +182,7 @@ mod tests {
         display.set_pixel(3, 2, true).unwrap();
         display.set_pixel(3, 4, true).unwrap();
 
-        assert_eq!(display.draw_sprite(2, 3, &[0b1010_0001]), Ok(true));
+        assert_eq!(display.draw_sprite(2, 3, &[0b1010_0001], false), Ok(true));
 
         assert!(!display.get_content()[3][2]);
         assert!(!display.get_content()[3][4]);
@@ -191,7 +196,8 @@ mod tests {
             display.draw_sprite(
                 Display::WIDTH - 2,
                 Display::HEIGHT - 1,
-                &[0b1111_1111, 0b1111_1111]
+                &[0b1111_1111, 0b1111_1111],
+                false,
             ),
             Ok(false)
         );
@@ -202,18 +208,43 @@ mod tests {
     }
 
     #[test]
+    fn test_draw_sprite_wraps_at_display_edges() {
+        let mut display = Display::new();
+
+        assert_eq!(
+            display.draw_sprite(
+                Display::WIDTH - 2,
+                Display::HEIGHT - 1,
+                &[0b1111_1111, 0b1000_0000],
+                true,
+            ),
+            Ok(false)
+        );
+
+        assert!(display.get_content()[Display::HEIGHT - 1][Display::WIDTH - 2]);
+        assert!(display.get_content()[Display::HEIGHT - 1][Display::WIDTH - 1]);
+        assert!(display.get_content()[Display::HEIGHT - 1][0]);
+        assert!(display.get_content()[Display::HEIGHT - 1][1]);
+        assert!(display.get_content()[Display::HEIGHT - 1][2]);
+        assert!(display.get_content()[Display::HEIGHT - 1][3]);
+        assert!(display.get_content()[Display::HEIGHT - 1][4]);
+        assert!(display.get_content()[Display::HEIGHT - 1][5]);
+        assert!(display.get_content()[0][Display::WIDTH - 2]);
+    }
+
+    #[test]
     fn test_draw_sprite_out_of_bounds() {
         let mut display = Display::new();
 
         assert_eq!(
-            display.draw_sprite(Display::WIDTH, 0, &[0]),
+            display.draw_sprite(Display::WIDTH, 0, &[0], false),
             Err(Chip8Error::DisplayOutOfBounds {
                 row: 0,
                 col: Display::WIDTH
             })
         );
         assert_eq!(
-            display.draw_sprite(0, Display::HEIGHT, &[0]),
+            display.draw_sprite(0, Display::HEIGHT, &[0], false),
             Err(Chip8Error::DisplayOutOfBounds {
                 row: Display::HEIGHT,
                 col: 0

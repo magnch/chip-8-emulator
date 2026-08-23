@@ -1,62 +1,52 @@
-extern crate sdl2;
-use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
+//! CHIP-8 buzzer playback backed by `rodio`.
+//!
+//! The CHIP-8 sound timer is a simple on/off signal, so this plays a
+//! continuous square wave and just toggles play/pause to match it.
 
-struct SquareWave {
-    phase: f32,
-    phase_inc: f32,
-    volume: f32,
-}
+use rodio::{
+    MixerDeviceSink, Player,
+    source::{Source, SquareWave},
+};
 
-impl AudioCallback for SquareWave {
-    type Channel = f32;
-
-    fn callback(&mut self, out: &mut [f32]) {
-        for sample in out.iter_mut() {
-            // Generate square wave for a buzzer sound
-            *sample = if self.phase <= 0.5 {
-                self.volume
-            } else {
-                -self.volume
-            };
-            self.phase = (self.phase + self.phase_inc) % 1.0;
-        }
-    }
-}
-
+/// A square-wave buzzer that can be started and stopped to match the CHIP-8 sound timer.
 pub struct AudioPlayer {
-    device: AudioDevice<SquareWave>,
-    is_playing: bool, // tracks current state to avoid redundant resume()/pause() calls
+    // Kept alive for as long as `player` needs the output device.
+    _stream: MixerDeviceSink,
+    player: Player,
+}
+
+impl Default for AudioPlayer {
+    /// Create a player using the default buzzer frequency and volume.
+    fn default() -> Self {
+        Self::new(Self::DEFAULT_BUZZER_FREQ, Self::DEFAULT_VOLUME)
+    }
 }
 
 impl AudioPlayer {
-    pub fn new(sdl_context: &sdl2::Sdl) -> Result<Self, String> {
-        let audio_subsystem = sdl_context.audio().expect("failed to init audio subsystem");
+    const DEFAULT_BUZZER_FREQ: f32 = 440.0;
+    const DEFAULT_VOLUME: f32 = 0.05;
 
-        let desired_spec = AudioSpecDesired {
-            freq: Some(44_100),
-            channels: Some(1),
-            samples: None,
-        };
+    /// Open the default output device and prepare (but do not start) the buzzer tone.
+    pub fn new(buzzer_freq: f32, volume: f32) -> Self {
+        let stream =
+            rodio::DeviceSinkBuilder::open_default_sink().expect("open default audio stream");
+        let player = Player::connect_new(stream.mixer());
+        let source = SquareWave::new(buzzer_freq).amplify(volume);
+        player.append(source);
+        player.pause();
 
-        let device = audio_subsystem.open_playback(None, &desired_spec, |spec| SquareWave {
-            phase_inc: 440.0 / spec.freq as f32,
-            phase: 0.0,
-            volume: 0.05,
-        })?;
-
-        Ok(AudioPlayer {
-            device,
-            is_playing: false,
-        })
+        Self {
+            _stream: stream,
+            player,
+        }
     }
 
-    pub fn update(&mut self, should_beep: bool) {
-        if should_beep && !self.is_playing {
-            self.device.resume();
-            self.is_playing = true;
-        } else if !should_beep && self.is_playing {
-            self.device.pause();
-            self.is_playing = false;
+    /// Start or stop the buzzer tone.
+    pub fn set_playing(&mut self, should_play: bool) {
+        if should_play {
+            self.player.play();
+        } else {
+            self.player.pause();
         }
     }
 }

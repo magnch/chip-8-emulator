@@ -86,9 +86,9 @@ pub(crate) fn decode(opcode: u16) -> Instruction {
         0xB => Instruction::Jmi(nnn),
         0xC => Instruction::Rand(x, nn),
         0xD => Instruction::Sprite(x, y, n),
-        0xE => match n {
-            0x1 => Instruction::Skup(x),
-            0xE => Instruction::Skpr(x),
+        0xE => match nn {
+            0xA1 => Instruction::Skup(x),
+            0x9E => Instruction::Skpr(x),
 
             _ => Instruction::Unknown,
         },

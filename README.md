@@ -1,28 +1,33 @@
 # chip-8-emulator
 
-A CHIP-8 emulator written in Rust. `chip8-core` implements the interpreter (memory, opcodes, display buffer, timers), `chip8-desktop` runs it with SDL2 for video, sound, and keyboard input.
+A CHIP-8 emulator written in Rust. `chip8-core` implements the interpreter (memory, opcodes, display buffer, timers), `chip8-desktop` runs it in a native [egui](https://github.com/emilk/egui)/`eframe` window, with audio via `rodio`.
 
 ## Layout
 
 - `core/` — `chip8-core`, the CHIP-8 interpreter. No I/O, just state and opcode execution.
-- `desktop/` — `chip8-desktop`, an SDL2 frontend around `chip8-core`.
+- `desktop/` — `chip8-desktop`, an egui/eframe frontend around `chip8-core`.
 - `roms/` — test ROMs and a couple of games.
 
 ## Building
-
-Requires SDL2 development libraries (the `bundled` feature builds SDL2 from source, so no system install is strictly needed on most platforms).
 
 ```
 cargo build --release
 ```
 
-## Running
+eframe uses the OS's native windowing and GPU backend, so no SDL2 or other system video library is required. On Linux you'll need the usual GTK/X11 or Wayland development packages that `winit`/`eframe` depend on.
 
-The desktop binary currently loads a hardcoded ROM path in [main.rs](desktop/src/main.rs) — point it at a ROM under `roms/` and run:
+## Running
 
 ```
 cargo run --release -p chip8-desktop
 ```
+
+No ROM is loaded on startup — use **File > Open ROM…** in the app to pick one (e.g. from `roms/`).
+
+## Menu
+
+- **File** — Open ROM… (native file picker), Exit.
+- **Settings** — Paused (toggle CPU/timer execution), Reset (reload the current ROM from a clean state), and a **Configuration** submenu for the compatibility toggles described below. Changes apply immediately.
 
 ## Controls
 
@@ -35,8 +40,6 @@ A S D F        7 8 9 E
 Z X C V        A 0 B F
 ```
 
-Escape quits.
-
 ## Quirks
 
-CHIP-8 has a handful of behaviors that differ between interpreters (shift instructions, `BNNN`, `FX55`/`FX65` index handling, etc.). These are exposed as toggles in [Config](core/src/config.rs) rather than hardcoded, so ROMs written against different conventions can be supported.
+CHIP-8 has a handful of behaviors that differ between interpreters (shift instructions, `BNNN`, `FX55`/`FX65` index handling, etc.). These are exposed as toggles in [Config](core/src/config.rs), settable live from Settings > Configuration, so ROMs written against different conventions can be supported without a rebuild.
