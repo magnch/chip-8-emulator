@@ -83,11 +83,11 @@ impl Display {
                     if x >= Self::WIDTH {
                         if wrap {
                             x -= Self::WIDTH;
-                        } else {  
+                        } else {
                             break 'column;
                         }
                     }
-                    
+
                     let mut y = y_start + row;
                     if y >= Self::HEIGHT {
                         if wrap {
@@ -96,7 +96,7 @@ impl Display {
                             break 'row;
                         }
                     }
-                    
+
                     match self.content[y][x] {
                         false => self.content[y][x] = true,
                         true => {

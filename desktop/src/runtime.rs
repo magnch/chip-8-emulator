@@ -68,17 +68,15 @@ fn emulator_worker(
                         last_error = Some(err.to_string());
                     }
                 }
-                Ok(EmuCommand::LoadRom(bytes)) => {
-                    match emulator.load_rom(&bytes) {
-                        Ok(()) => {
-                            last_error = None;
-                            paused = false;
-                        }
-                        Err(err) => {
-                            last_error = Some(err.to_string());
-                        }
+                Ok(EmuCommand::LoadRom(bytes)) => match emulator.load_rom(&bytes) {
+                    Ok(()) => {
+                        last_error = None;
+                        paused = false;
                     }
-                }
+                    Err(err) => {
+                        last_error = Some(err.to_string());
+                    }
+                },
                 Ok(EmuCommand::Pause(value)) => {
                     paused = value;
                 }

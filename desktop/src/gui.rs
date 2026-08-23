@@ -36,7 +36,8 @@ impl Chip8App {
 
     fn draw_display(&self, ui: &mut egui::Ui) {
         let available = ui.available_size();
-        let scale = (available.x / runtime::DISPLAY_WIDTH as f32).min(available.y / runtime::DISPLAY_HEIGHT as f32);
+        let scale = (available.x / runtime::DISPLAY_WIDTH as f32)
+            .min(available.y / runtime::DISPLAY_HEIGHT as f32);
 
         let display_size = Vec2::new(
             Display::WIDTH as f32 * scale,
@@ -89,7 +90,6 @@ impl Chip8App {
         }
     }
 }
-
 
 impl eframe::App for Chip8App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
