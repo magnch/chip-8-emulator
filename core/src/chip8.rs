@@ -124,6 +124,10 @@ impl Chip8 {
     pub fn is_beeping(&self) -> bool {
         self.sound_timer > 0
     }
+    /// Take dirty bit from display
+    pub fn display_take_dirty(&mut self) -> bool {
+        self.display.take_dirty()
+    }
     /// Fetch next opcode from memory
     fn fetch(&mut self) -> Result<u16, Chip8Error> {
         // Fetch opcode from PC

@@ -3,6 +3,7 @@ use crate::{error::Chip8Error, utils::extract_bit};
 /// A 64 x 32 monochrome CHIP-8 display buffer.
 pub struct Display {
     content: [[bool; Self::WIDTH]; Self::HEIGHT],
+    dirty: bool,
 }
 
 impl Default for Display {
@@ -20,12 +21,17 @@ impl Display {
     pub(crate) fn new() -> Self {
         Display {
             content: [[false; Self::WIDTH]; Self::HEIGHT],
+            dirty: false,
         }
     }
 
     /// Return the current framebuffer.
     pub fn get_content(&self) -> &[[bool; Self::WIDTH]; Self::HEIGHT] {
         &self.content
+    }
+
+    pub fn take_dirty(&mut self) -> bool {
+        std::mem::replace(&mut self.dirty, false)
     }
 
     /// Set one pixel without applying sprite XOR behavior.
@@ -98,9 +104,11 @@ impl Display {
                             collision = true;
                         }
                     }
+                    self.dirty = true;
                 }
             }
         }
+
         Ok(collision)
     }
 
