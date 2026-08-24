@@ -6,7 +6,6 @@ A CHIP-8 emulator written in Rust. `chip8-core` implements the interpreter (memo
 
 - `core/` — `chip8-core`, the CHIP-8 interpreter. No I/O, just state and opcode execution.
 - `desktop/` — `chip8-desktop`, an egui/eframe frontend around `chip8-core`.
-- `roms/` — test ROMs and a couple of games.
 
 ## Building
 
