@@ -14,7 +14,7 @@
 ## Basic usage
 
 ```rust
-use chip8_core::chip8::Chip8;
+use chip8_core::Chip8;
 
 let mut chip8 = Chip8::new();
 chip8.load_rom(&rom)?;
@@ -40,9 +40,22 @@ The frontend is responsible for loading the ROM, scheduling CPU steps and timer 
 | `Chip8::key_down` | Mark a CHIP-8 key as pressed |
 | `Chip8::key_up` | Mark a CHIP-8 key as released |
 | `Chip8::is_beeping` | Check whether the sound timer is active |
-| `Chip8::get_state` | Obtain a copy of the CPU state |
 
 `step` and `tick_timers` are separate operations. A frontend should schedule them according to the desired CPU and timer frequencies rather than assuming that every instruction step represents one timer tick.
+
+## `debug-tools` feature
+
+Off by default; enable it (`chip8-core = { features = ["debug-tools"] }`) to build a debugger on top of the interpreter. It adds:
+
+| Item | Purpose |
+| --- | --- |
+| `Chip8::get_state` | Copy the CPU state (registers, PC, index, stack, timers) as `CpuState` |
+| `Chip8::get_memory_content` | Borrow the full 4 KiB memory space, e.g. to disassemble around the program counter |
+| `Chip8::set_register` | Directly overwrite a register |
+| `Chip8::set_pc` | Directly overwrite the program counter |
+| `decode` / `Instruction` | Decode a raw opcode into a printable instruction, without executing it |
+
+`chip8-desktop` always enables this feature; its Settings > Show Debugger panel is built entirely on top of it.
 
 ## Errors
 

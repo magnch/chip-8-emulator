@@ -17,9 +17,9 @@ use chip8_core::{Config, CpuState};
 
 use crate::emulator::Emulator;
 
-/// Display width in pixels, mirrors [`chip8_core::display::Display::WIDTH`].
+/// Display width in pixels, mirrors [`chip8_core::Display::WIDTH`].
 pub const DISPLAY_WIDTH: usize = 64;
-/// Display height in pixels, mirrors [`chip8_core::display::Display::HEIGHT`].
+/// Display height in pixels, mirrors [`chip8_core::Display::HEIGHT`].
 pub const DISPLAY_HEIGHT: usize = 32;
 /// Number of keys on the CHIP-8 keypad.
 pub const NUM_KEYS: usize = 16;
@@ -38,7 +38,8 @@ pub enum EmuCommand {
     Reset(),
     /// Replace the interpreter's compatibility settings.
     SetConfig(Config),
-    /// Perform a single CPU step
+    /// Execute a single CPU step, regardless of the pause state. Used by
+    /// the debugger's Step button.
     StepOnce(),
 }
 
@@ -54,9 +55,9 @@ pub struct EmuSnapshot {
     pub beeping: bool,
     /// The most recent emulator error, if any, as a display string.
     pub error: Option<String>,
-    /// CPU state, used by the debugger
+    /// The current CPU state, for the debugger panel.
     pub cpu: CpuState,
-    /// Memory content, used by the debugger
+    /// The full memory space, for the debugger's instruction disassembly.
     pub memory: [u8; 4096],
 }
 

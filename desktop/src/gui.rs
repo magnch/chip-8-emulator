@@ -1,5 +1,6 @@
-//! The egui [`eframe::App`] that renders the CHIP-8 display, menu bar, and
-//! error banner, and forwards keyboard input to the emulator thread.
+//! The egui [`eframe::App`] that renders the CHIP-8 display, menu bar,
+//! debugger panels, and error banner, and forwards keyboard input to the
+//! emulator thread.
 
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
@@ -14,7 +15,7 @@ use crate::runtime::{self, EmuCommand, EmuSnapshot, EmulatorRuntime};
 /// The CHIP-8 desktop application's egui state.
 ///
 /// Owns the emulator thread handle and the last [`EmuSnapshot`] it sent;
-/// per-frame work is to forward input, drain self.snapshots, and paint.
+/// per-frame work is to forward input, drain the latest snapshot, and paint.
 pub struct Chip8App {
     runtime: EmulatorRuntime,
     snapshot: EmuSnapshot,
@@ -28,6 +29,8 @@ pub struct Chip8App {
     /// The ROM currently loaded, kept so Settings > Reset can reload it.
     loaded_rom: Option<Vec<u8>>,
     paused: bool,
+    /// Whether the CPU/memory/instructions debugger panels are shown,
+    /// toggled from Settings > Show Debugger.
     show_debugger: bool,
 }
 
@@ -61,7 +64,8 @@ impl Chip8App {
     }
 
     /// Draw the File / Settings menu bar: loading ROMs, exiting, pausing,
-    /// resetting, and toggling compatibility [`Config`] flags live.
+    /// resetting, toggling compatibility [`Config`] flags live, and
+    /// showing/hiding the debugger panels.
     fn draw_menu_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -167,6 +171,8 @@ impl Chip8App {
         });
     }
 
+    /// If Settings > Show Debugger is enabled, draw the control, CPU state,
+    /// and instructions panels around the display.
     fn draw_debugger(&mut self, ctx: &egui::Context) {
         if !self.show_debugger {
             return;
@@ -176,6 +182,7 @@ impl Chip8App {
         self.draw_instructions_panel(ctx, &self.snapshot);
     }
 
+    /// Left side panel: registers, program counter, index, timers, and the call stack.
     fn draw_cpu_state_panel(&self, ctx: &egui::Context, snapshot: &EmuSnapshot) {
         let window_width = ctx.screen_rect().width();
         let panel_width = window_width * 0.18; // 18% of the window
@@ -207,6 +214,8 @@ impl Chip8App {
             });
     }
 
+    /// Right side panel: disassembles memory around the program counter,
+    /// highlighting the instruction about to execute.
     fn draw_instructions_panel(&self, ctx: &egui::Context, snapshot: &EmuSnapshot) {
         let window_width = ctx.screen_rect().width();
         let panel_width = window_width * 0.16; // 16% of the window
@@ -248,6 +257,7 @@ impl Chip8App {
             });
     }
 
+    /// Bottom panel: Pause/Resume, single-step (enabled only while paused), and Reset.
     fn draw_control_panel(&mut self, ctx: &egui::Context) {
         let window_height = ctx.screen_rect().height();
         let panel_height = window_height * 0.20;
@@ -338,7 +348,7 @@ impl Chip8App {
     }
 
     /// Replace [`Chip8App::snapshot`] with the most recent one available,
-    /// discarding any older, already-superseded self.snapshots.
+    /// discarding any older, already-superseded snapshots.
     fn drain_latest_snapshot(&mut self) {
         loop {
             match self.runtime.snapshot_rx.try_recv() {
@@ -357,7 +367,7 @@ impl Chip8App {
 
 impl eframe::App for Chip8App {
     /// Run one egui frame: forward input, pull in the latest emulator
-    /// state, and paint the menu bar and display.
+    /// state, and paint the menu bar, debugger panels, and display.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.send_input_edges(keyboard_state(ctx));
         self.drain_latest_snapshot();

@@ -27,7 +27,17 @@ No ROM is loaded on startup — use **File > Open ROM…** in the app to pick on
 ## Menu
 
 - **File** — Open ROM… (native file picker), Exit.
-- **Settings** — Paused (toggle CPU/timer execution), Reset (reload the current ROM from a clean state), and a **Configuration** submenu for the compatibility toggles described below. Changes apply immediately.
+- **Settings** — Paused (toggle CPU/timer execution), Reset (reload the current ROM from a clean state), a **Configuration** submenu for the compatibility toggles described below, and Show Debugger (see below). Changes apply immediately.
+
+## Debugger
+
+Settings > Show Debugger adds three panels around the display:
+
+- **Registers/state** (left) — `V0`-`VF`, `PC`, `I`, `SP`, the delay/sound timers, and the call stack.
+- **Instructions** (right) — a disassembly of memory around the program counter, with the next instruction to execute highlighted.
+- **Controls** (bottom) — Pause/Resume, Step (executes exactly one instruction; only enabled while paused), and Reset.
+
+This is built on `chip8-core`'s `debug-tools` feature, which `chip8-desktop` always enables.
 
 ## Controls
 

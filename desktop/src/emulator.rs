@@ -4,7 +4,9 @@
 //! [`Emulator::update`] accumulates elapsed wall-clock time and runs however
 //! many CPU steps and timer ticks are due, so callers (e.g. an egui frame
 //! loop, or a dedicated emulator thread) don't need to run at CHIP-8's CPU
-//! frequency themselves.
+//! frequency themselves. [`Emulator::step`] bypasses that accumulator for
+//! debugger single-stepping, and the debugger-only methods below forward
+//! CPU/memory introspection from `chip8-core`'s `debug-tools` feature.
 
 use std::time::Duration;
 
@@ -71,7 +73,10 @@ impl Emulator {
         self.chip8.key_down(key)
     }
 
-    /// Perform a single CPU step
+    /// Execute a single CPU step immediately, bypassing the timing
+    /// accumulator used by [`Emulator::update`]. Any instruction error is
+    /// silently discarded — intended for single-stepping from a debugger
+    /// while already paused.
     pub fn step(&mut self) {
         let _ = self.chip8.step();
     }
@@ -109,12 +114,14 @@ impl Emulator {
     }
 }
 
-/// Debugger methods
+/// Debugger-only introspection, forwarded from [`chip8_core`]'s `debug-tools` feature.
 impl Emulator {
+    /// Copy the current CPU state for the debugger panel.
     pub fn get_state(&self) -> CpuState {
         self.chip8.get_state()
     }
 
+    /// Borrow the full memory space, for the debugger's instruction disassembly.
     pub fn get_memory_content(&self) -> &[u8; Memory::MEMORY_SIZE] {
         self.chip8.get_memory_content()
     }

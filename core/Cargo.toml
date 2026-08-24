@@ -7,4 +7,6 @@ edition = "2024"
 rand = "0.10.2"
 
 [features]
+# Exposes CpuState, Memory, Instruction, decode(), and Chip8's state-inspection/mutation
+# methods (get_state, get_memory_content, set_register, set_pc) for a debugger frontend.
 debug-tools = []

@@ -107,6 +107,7 @@ impl Memory {
 
 #[cfg(feature = "debug-tools")]
 impl Memory {
+    /// Borrow the full memory space, for a debugger to inspect.
     pub(crate) fn get_content(&self) -> &[u8; Self::MEMORY_SIZE] {
         &self.content
     }

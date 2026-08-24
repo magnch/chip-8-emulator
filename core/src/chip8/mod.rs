@@ -1,12 +1,10 @@
-//! # Chip8 emulator core module
-//!
-//! This module provides the Chip8 struct for running the emulator core logic
-//! and interfacing with the main application
+//! The [`Chip8`] struct and its CPU execution loop.
 //!
 //! ## Examples
 //! ```
-//! use chip8_core::chip8;
-//! let mut chip8 = chip8::Chip8::new();
+//! use chip8_core::Chip8;
+//!
+//! let mut chip8 = Chip8::new();
 //! ```
 
 use rand;
