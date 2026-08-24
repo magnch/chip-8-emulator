@@ -61,7 +61,6 @@ pub struct EmuSnapshot {
     pub memory: [u8; 4096],
 }
 
-
 /// Handle to a running emulator thread: send [`EmuCommand`]s in, receive
 /// [`EmuSnapshot`]s out.
 pub struct EmulatorRuntime {

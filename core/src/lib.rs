@@ -57,7 +57,7 @@ pub use chip8::CpuState;
 #[cfg(feature = "debug-tools")]
 pub use memory::Memory;
 #[cfg(feature = "debug-tools")]
-pub use opcode::{decode, Instruction};
+pub use opcode::{Instruction, decode};
 
 pub use config::Config;
 pub use display::Display;

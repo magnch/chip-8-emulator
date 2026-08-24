@@ -3,7 +3,7 @@ use crate::utils::extract_nibbles;
 #[derive(Debug, PartialEq)]
 /// Decoded CHIP-8 instruction and its operands.
 pub enum Instruction {
-    Unknown(u16),              // unrecognized opcode
+    Unknown(u16),             // unrecognized opcode
     Cls,                      //00E0
     Rts,                      //00EE
     Low,                      //00FE

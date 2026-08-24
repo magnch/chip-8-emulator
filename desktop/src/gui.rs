@@ -165,7 +165,10 @@ impl Chip8App {
                                 .send(EmuCommand::SetConfig(self.config));
                         }
                     });
-                    if ui.checkbox(&mut self.show_debugger, "Show Debugger").changed() {}
+                    if ui
+                        .checkbox(&mut self.show_debugger, "Show Debugger")
+                        .changed()
+                    {}
                 });
             });
         });
@@ -195,7 +198,9 @@ impl Chip8App {
                     for (i, reg) in self.snapshot.cpu.registers.iter().enumerate() {
                         ui.label(format!("V{i:X}"));
                         ui.label(format!("{reg:#04X}"));
-                        if i % 2 == 1 { ui.end_row(); }
+                        if i % 2 == 1 {
+                            ui.end_row();
+                        }
                     }
                 });
 
@@ -208,7 +213,7 @@ impl Chip8App {
 
                 ui.separator();
                 ui.heading("Stack");
-                for (i, addr) in snapshot.cpu.stack.iter().take(snapshot.cpu.sp as usize).enumerate() {
+                for (i, addr) in snapshot.cpu.stack.iter().take(snapshot.cpu.sp).enumerate() {
                     ui.label(format!("{i}: {addr:#05X}"));
                 }
             });
@@ -230,11 +235,9 @@ impl Chip8App {
                     let start = pc.saturating_sub(10) & !1; // stay word-aligned, show some context above
                     let mut addr = start;
 
-                    while addr < start + 40 && (addr as usize) < snapshot.memory.len() - 1 {
-                        let word = u16::from_be_bytes([
-                            snapshot.memory[addr as usize],
-                            snapshot.memory[addr as usize + 1],
-                        ]);
+                    while addr < start + 40 && (addr) < snapshot.memory.len() - 1 {
+                        let word =
+                            u16::from_be_bytes([snapshot.memory[addr], snapshot.memory[addr + 1]]);
 
                         let instr = chip8_core::decode(word);
                         let text = if matches!(instr, chip8_core::Instruction::Unknown(_word)) {
@@ -269,16 +272,24 @@ impl Chip8App {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     ui.add_space(panel_height * 0.5 - 20.0); // rough vertical centering
                     ui.horizontal(|ui| {
-                        ui.add_space(ui.available_width() / 2.0 - (button_size.x * 3.0 + 16.0) / 2.0);
+                        ui.add_space(
+                            ui.available_width() / 2.0 - (button_size.x * 3.0 + 16.0) / 2.0,
+                        );
 
                         let pause_label = if self.paused { "Resume" } else { "Pause" };
-                        if ui.add(egui::Button::new(pause_label).min_size(button_size)).clicked() {
+                        if ui
+                            .add(egui::Button::new(pause_label).min_size(button_size))
+                            .clicked()
+                        {
                             self.paused = !self.paused;
                             let _ = self.runtime.command_tx.send(EmuCommand::Pause(self.paused));
                         }
 
                         if ui
-                            .add_enabled(self.paused, egui::Button::new("Step").min_size(button_size))
+                            .add_enabled(
+                                self.paused,
+                                egui::Button::new("Step").min_size(button_size),
+                            )
                             .clicked()
                         {
                             let _ = self.runtime.command_tx.send(EmuCommand::StepOnce());

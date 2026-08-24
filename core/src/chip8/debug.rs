@@ -35,7 +35,7 @@ impl Default for CpuState {
             sp: 0,
             stack: [0; Chip8::STACK_SIZE],
             delay_timer: 0,
-            sound_timer: 0
+            sound_timer: 0,
         }
     }
 }

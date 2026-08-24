@@ -7,8 +7,6 @@
 //! let mut chip8 = Chip8::new();
 //! ```
 
-use rand;
-
 use crate::config::Config;
 use crate::display::Display;
 use crate::error::Chip8Error;
@@ -198,7 +196,9 @@ impl Chip8 {
             Instruction::Str(x) => self.execute_str(x)?,
             Instruction::Ldr(x) => self.execute_ldr(x)?,
 
-            Instruction::Unknown(opcode) => unreachable!("tried to execute Instruction::Unknown (opcode {opcode}"),
+            Instruction::Unknown(opcode) => {
+                unreachable!("tried to execute Instruction::Unknown (opcode {opcode}")
+            }
         }
         Ok(())
     }
