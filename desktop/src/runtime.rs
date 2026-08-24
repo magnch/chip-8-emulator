@@ -13,13 +13,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chip8_core::config::Config;
+use chip8_core::{Config, CpuState};
 
 use crate::emulator::Emulator;
 
-/// Display width in pixels, mirrors [`chip8_core::display::Display::WIDTH`].
+/// Display width in pixels, mirrors [`chip8_core::Display::WIDTH`].
 pub const DISPLAY_WIDTH: usize = 64;
-/// Display height in pixels, mirrors [`chip8_core::display::Display::HEIGHT`].
+/// Display height in pixels, mirrors [`chip8_core::Display::HEIGHT`].
 pub const DISPLAY_HEIGHT: usize = 32;
 /// Number of keys on the CHIP-8 keypad.
 pub const NUM_KEYS: usize = 16;
@@ -38,6 +38,9 @@ pub enum EmuCommand {
     Reset(),
     /// Replace the interpreter's compatibility settings.
     SetConfig(Config),
+    /// Execute a single CPU step, regardless of the pause state. Used by
+    /// the debugger's Step button.
+    StepOnce(),
 }
 
 /// A snapshot of emulator state produced once per worker loop iteration,
@@ -52,7 +55,12 @@ pub struct EmuSnapshot {
     pub beeping: bool,
     /// The most recent emulator error, if any, as a display string.
     pub error: Option<String>,
+    /// The current CPU state, for the debugger panel.
+    pub cpu: CpuState,
+    /// The full memory space, for the debugger's instruction disassembly.
+    pub memory: [u8; 4096],
 }
+
 
 /// Handle to a running emulator thread: send [`EmuCommand`]s in, receive
 /// [`EmuSnapshot`]s out.
@@ -124,6 +132,9 @@ fn emulator_worker(
                 Ok(EmuCommand::SetConfig(config)) => {
                     emulator.set_config(config);
                 }
+                Ok(EmuCommand::StepOnce()) => {
+                    emulator.step();
+                }
 
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => return,
@@ -146,6 +157,8 @@ fn emulator_worker(
             display_dirty: emulator.display_take_dirty(),
             beeping: emulator.is_beeping(),
             error: last_error.clone(),
+            cpu: emulator.get_state(),
+            memory: *emulator.get_memory_content(),
         };
         match snapshot_tx.try_send(snapshot) {
             Ok(()) => {}

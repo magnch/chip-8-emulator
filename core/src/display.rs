@@ -34,6 +34,23 @@ impl Display {
         std::mem::replace(&mut self.dirty, false)
     }
 
+    /// Set one pixel directly, bypassing sprite XOR semantics. Test-only:
+    /// production code always writes through `draw_sprite`.
+    #[cfg(test)]
+    pub(crate) fn set_pixel(
+        &mut self,
+        row: usize,
+        col: usize,
+        value: bool,
+    ) -> Result<(), Chip8Error> {
+        if self.out_of_bounds(row, col) {
+            Err(Chip8Error::DisplayOutOfBounds { row, col })
+        } else {
+            self.content[row][col] = value;
+            Ok(())
+        }
+    }
+
     /// Clear every pixel in the framebuffer.
     pub(crate) fn clear(&mut self) {
         for row in self.content.iter_mut() {

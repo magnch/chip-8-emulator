@@ -4,11 +4,13 @@
 //! [`Emulator::update`] accumulates elapsed wall-clock time and runs however
 //! many CPU steps and timer ticks are due, so callers (e.g. an egui frame
 //! loop, or a dedicated emulator thread) don't need to run at CHIP-8's CPU
-//! frequency themselves.
+//! frequency themselves. [`Emulator::step`] bypasses that accumulator for
+//! debugger single-stepping, and the debugger-only methods below forward
+//! CPU/memory introspection from `chip8-core`'s `debug-tools` feature.
 
 use std::time::Duration;
 
-use chip8_core::{chip8::Chip8, config::Config, display::Display, error::Chip8Error};
+use chip8_core::{Chip8, Chip8Error, Config, CpuState, Display, Memory};
 
 /// A [`Chip8`] instance paired with independent CPU and timer clocks.
 pub struct Emulator {
@@ -71,6 +73,14 @@ impl Emulator {
         self.chip8.key_down(key)
     }
 
+    /// Execute a single CPU step immediately, bypassing the timing
+    /// accumulator used by [`Emulator::update`]. Any instruction error is
+    /// silently discarded — intended for single-stepping from a debugger
+    /// while already paused.
+    pub fn step(&mut self) {
+        let _ = self.chip8.step();
+    }
+
     /// Mark a CHIP-8 key as released.
     pub fn key_up(&mut self, key: usize) -> Result<(), Chip8Error> {
         self.chip8.key_up(key)
@@ -81,7 +91,7 @@ impl Emulator {
         self.chip8.is_beeping()
     }
 
-    /// Borrow the current display buffer.
+    /// Borrow the current display object.
     pub fn display(&self) -> &Display {
         self.chip8.get_display()
     }
@@ -101,5 +111,18 @@ impl Emulator {
     /// next instruction.
     pub fn set_config(&mut self, config: Config) {
         self.chip8.config = config;
+    }
+}
+
+/// Debugger-only introspection, forwarded from [`chip8_core`]'s `debug-tools` feature.
+impl Emulator {
+    /// Copy the current CPU state for the debugger panel.
+    pub fn get_state(&self) -> CpuState {
+        self.chip8.get_state()
+    }
+
+    /// Borrow the full memory space, for the debugger's instruction disassembly.
+    pub fn get_memory_content(&self) -> &[u8; Memory::MEMORY_SIZE] {
+        self.chip8.get_memory_content()
     }
 }
